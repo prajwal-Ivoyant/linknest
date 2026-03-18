@@ -24,16 +24,16 @@ linknest/
 │   └── src/
 │       ├── models/       # Mongoose schemas (User, Bookmark)
 │       ├── routes/       # REST endpoints (auth, bookmarks)
-│       ├── services/     # AI categorization (OpenAI)
+│       ├── services/     # AI categorization (Groq)
 │       ├── utils/        # Bookmark file parser
 │       └── middleware/   # JWT auth
 └── frontend/         # React 18 + Vite + Ant Design
     └── src/
-        ├── api/          # Axios client + API functions
+        ├── api/          # RTK
         ├── components/   # UI components
         ├── hooks/        # React Query hooks
         ├── pages/        # Auth, Dashboard
-        ├── store/        # Zustand (auth, UI)
+        ├── store/        # Redux (auth, UI)
         ├── types/        # TypeScript interfaces
         └── utils/        # Helpers (colors, formatting)
 ```
@@ -45,7 +45,7 @@ linknest/
 ### Prerequisites
 - Node.js 18+
 - MongoDB (local or Atlas)
-- OpenAI API key (optional — falls back to rule-based)
+- Groq API key (optional — falls back to rule-based)
 
 ### 1. Backend Setup
 
