@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: linknest-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: linknest
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: linknest-api
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongodb:27017/linknest
+      - PORT=5000
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-changeme_access}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-changeme_refresh}
+      - JWT_ACCESS_EXPIRES=15m
+      - JWT_REFRESH_EXPIRES=7d
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CLIENT_URL=http://localhost:5173
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: linknest-web
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mongo_data:

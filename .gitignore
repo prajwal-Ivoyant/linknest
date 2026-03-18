@@ -1,0 +1,86 @@
+# ==============================
+# OS / System files
+# ==============================
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Logs
+# ==============================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==============================
+# Node modules
+# ==============================
+node_modules/
+**/node_modules/
+
+# ==============================
+# Build / Production
+# ==============================
+dist/
+build/
+.vite/
+.cache/
+out/
+
+# ==============================
+# Environment variables
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# IDE / Editor
+# ==============================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==============================
+# Coverage / Testing
+# ==============================
+coverage/
+.nyc_output/
+
+# ==============================
+# Mongo / Local DB
+# ==============================
+data/
+*.db
+*.sqlite
+
+# ==============================
+# Uploads / Temp
+# ==============================
+uploads/
+tmp/
+temp/
+
+# ==============================
+# Backend specific
+# ==============================
+server/node_modules/
+server/.env
+server/dist/
+
+# ==============================
+# Frontend specific
+# ==============================
+client/node_modules/
+client/dist/
+client/.vite/
+
+# ==============================
+# Misc
+# ==============================
+*.local
+*.pid
+*.seed
