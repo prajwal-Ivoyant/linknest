@@ -43,7 +43,7 @@ router.use(authenticate);
 router.get('/', async (req, res) => {
   try {
     const {
-      page = 1, limit = 24,
+      page = 1, limit = 50,
       browserSource, topicCategory,
       isFavorite, isArchived = false,
       search, sortBy = 'createdAt', sortOrder = 'desc', tags,
@@ -118,6 +118,106 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+// ─── GET /api/bookmarks/grouped ───────────────────────────────────────────────
+// Powers the Kanban board.
+// ?by=browserSource            → group all bookmarks by browser (Level 1)
+// ?by=topicCategory&browserSource=Chrome → group Chrome bookmarks by topic (Level 2)
+// ?browserSource=Chrome&topicCategory=Development → flat list for focused view (Level 3)
+
+router.get('/grouped', async (req, res) => {
+  try {
+    const {
+      by,                      // 'browserSource' | 'topicCategory'
+      browserSource,
+      topicCategory,
+      limit = 30,              // max cards per column
+      isArchived = false,
+      search,                  // text search query
+    } = req.query;
+
+    const baseQuery = {
+      user: req.user._id,
+      isArchived: isArchived === 'true',
+    };
+
+    // Apply text search if provided
+    if (search) {
+      baseQuery.$text = { $search: search };
+    }
+
+    // Level 3: both filters set → flat list
+    if (browserSource && browserSource !== 'all' && topicCategory && topicCategory !== 'all') {
+      const bookmarks = await Bookmark.find({
+        ...baseQuery,
+        browserSource,
+        topicCategory,
+      })
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit))
+        .lean({ virtuals: true });
+
+      const total = await Bookmark.countDocuments({ ...baseQuery, browserSource, topicCategory });
+
+      return res.json({
+        success: true,
+        data: {
+          mode: 'flat',
+          bookmarks,
+          total,
+          browserSource,
+          topicCategory,
+        },
+      });
+    }
+
+    // Level 1 & 2: group by field
+    const groupField = by === 'topicCategory' ? 'topicCategory' : 'browserSource';
+
+    // Apply cross-filters to baseQuery so columns are scoped correctly:
+    // e.g. browserSource='all' + topicCategory='Development' → browser columns showing only Dev bookmarks
+    // e.g. browserSource='Chrome' + topicCategory='all' → topic columns showing only Chrome bookmarks
+    if (browserSource && browserSource !== 'all') {
+      baseQuery.browserSource = browserSource;
+    }
+    if (topicCategory && topicCategory !== 'all') {
+      baseQuery.topicCategory = topicCategory;
+    }
+
+    // Get all distinct group values that exist for this user
+    const distinctGroups = await Bookmark.distinct(groupField, baseQuery);
+
+    // Fetch bookmarks for each group in parallel
+    const groupResults = await Promise.all(
+      distinctGroups.map(async (groupValue) => {
+        const groupQuery = { ...baseQuery, [groupField]: groupValue };
+        const [bookmarks, total] = await Promise.all([
+          Bookmark.find(groupQuery)
+            .sort({ createdAt: -1 })
+            .limit(parseInt(limit))
+            .lean({ virtuals: true }),
+          Bookmark.countDocuments(groupQuery),
+        ]);
+        return { name: groupValue, bookmarks, total };
+      })
+    );
+
+    // Sort columns: most bookmarks first
+    groupResults.sort((a, b) => b.total - a.total);
+
+    res.json({
+      success: true,
+      data: {
+        mode: 'kanban',
+        groupBy: groupField,
+        groups: groupResults,
+      },
+    });
+  } catch (err) {
+    console.error('Grouped bookmarks error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // ─── GET /api/bookmarks/:id ───────────────────────────────────────────────────
 
 router.get('/:id', async (req, res) => {
@@ -130,8 +230,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// ─── POST /api/bookmarks — Manual create (with full AI analysis) ──────────────
-// If user leaves title/description/tags/topic empty, AI fills them in.
+// ─── POST /api/bookmarks ──────────────────────────────────────────────────────
 
 router.post('/', async (req, res) => {
   try {
@@ -142,7 +241,6 @@ router.post('/', async (req, res) => {
     let aiCategorized = false;
     let aiConfidence = 0;
 
-    // If topic not provided manually → run full AI analysis
     if (!topicCategory) {
       const analysis = await analyzeBookmark({ url: value.url, title });
       title = title || analysis.title;
@@ -155,13 +253,9 @@ router.post('/', async (req, res) => {
 
     const bookmark = await Bookmark.create({
       ...value,
-      title,
-      description,
-      tags,
+      title, description, tags,
       user: req.user._id,
-      topicCategory,
-      aiCategorized,
-      aiConfidence,
+      topicCategory, aiCategorized, aiConfidence,
       favicon: getFaviconUrl(value.url),
     });
 
@@ -224,23 +318,18 @@ router.delete('/bulk/delete', async (req, res) => {
   }
 });
 
-// ─── POST /api/bookmarks/import/file — Bulk browser file import ───────────────
-// Uses batch AI (20 per call) for speed. Returns category only (not full analysis).
+// ─── POST /api/bookmarks/import/file ─────────────────────────────────────────
 
 router.post('/import/file', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
-    }
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
 
     const content = req.file.buffer.toString('utf-8');
     const { bookmarks: parsed, detectedBrowser } = parseBookmarkFile(content, req.file.originalname);
 
-    if (parsed.length === 0) {
+    if (parsed.length === 0)
       return res.status(400).json({ success: false, message: 'No bookmarks found in file' });
-    }
 
-    // Batch categorize (20/call) — fast for large imports
     let categories;
     try {
       categories = await batchCategorizeBookmarks(parsed);
@@ -260,34 +349,26 @@ router.post('/import/file', upload.single('file'), async (req, res) => {
       addedAt: b.addedAt || new Date(),
     }));
 
-    // Insert in chunks to avoid timeouts
     let inserted = 0;
     for (let i = 0; i < bookmarksToInsert.length; i += 100) {
-      const chunk = bookmarksToInsert.slice(i, i + 100);
-      const result = await Bookmark.insertMany(chunk, { ordered: false });
+      const result = await Bookmark.insertMany(bookmarksToInsert.slice(i, i + 100), { ordered: false });
       inserted += result.length;
     }
 
-    res.json({
-      success: true,
-      message: `Successfully imported ${inserted} bookmarks`,
-      data: { count: inserted, browser: detectedBrowser },
-    });
+    res.json({ success: true, message: `Successfully imported ${inserted} bookmarks`, data: { count: inserted, browser: detectedBrowser } });
   } catch (err) {
     console.error('Import file error:', err);
     res.status(500).json({ success: false, message: err.message || 'Import failed' });
   }
 });
 
-// ─── POST /api/bookmarks/import/url — Single URL with FULL AI analysis ────────
-// AI returns: title + description + tags + topicCategory + confidence
+// ─── POST /api/bookmarks/import/url ──────────────────────────────────────────
 
 router.post('/import/url', async (req, res) => {
   try {
     const { url, title, browserSource = 'Other' } = req.body;
     if (!url) return res.status(400).json({ success: false, message: 'URL is required' });
 
-    // Full AI analysis — enriches title, generates description + tags + category
     const analysis = await analyzeBookmark({ url, title });
 
     const created = await Bookmark.create({
