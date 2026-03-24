@@ -3,14 +3,14 @@ import AppProviders from './app/AppProviders';
 import AppTheme from './app/AppTheme';
 import AppRouter from './app/AppRouter';
 import { useAppDispatch } from './store/hooks';
-import { initializeAuthThunk } from './store/authSlice';
+import { useGetMeQuery } from './store/authapiSlice';
 
 const AppContent = () => {
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    dispatch(initializeAuthThunk());
-  }, [dispatch]);
+ const { isLoading } = useGetMeQuery(undefined, {
+  skip: !localStorage.getItem('accessToken'),
+});
 
   return (
     <AppTheme>

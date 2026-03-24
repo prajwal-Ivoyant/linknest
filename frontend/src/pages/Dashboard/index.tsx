@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import {
   Layout, Input, Button, Tooltip, Dropdown, Avatar,
-  Typography, Space, Flex,Image
+  Typography, Space,Flex,Image
 } from 'antd';
 import {
   SearchOutlined, MenuUnfoldOutlined,
@@ -14,7 +14,8 @@ import {
   setSidebarCollapsed, setImportModalOpen, setAddModalOpen,
   toggleTheme,
 } from '../../store/uiSlice';
-import { logoutThunk } from '../../store/authSlice';
+import { clearAuth } from '../../store/authSlice';
+import { useLogoutMutation } from '../../store/authapiSlice';
 import KanbanBoard from '../../components/KanbanBoard';
 import CategorySidebar from '../../components/CategorySidebar';
 import ImportModal from '../../components/ImportModal';
@@ -23,12 +24,13 @@ import { TOPIC_EMOJIS, BROWSER_EMOJIS } from '../../utils/helpers';
 import type { TopicCategory, BrowserSource } from '../../types';
 import logo from "../../../public/logo.png"
 
-const { Header, Content, Sider } = Layout;
-const { Text } = Typography;
+const { Header, Content,Sider } = Layout;
+const { Text, Title } = Typography;
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((s) => s.auth);
+  const [logout] = useLogoutMutation();
   const { filters, sidebarCollapsed, theme } = useAppSelector((s) => s.ui);
   const isDark = theme === 'dark';
 
@@ -60,184 +62,153 @@ const Dashboard: React.FC = () => {
     <Layout style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <CategorySidebar />
 
-      {sidebarCollapsed && (
-       <Sider
-  width={75}
-  collapsedWidth={75}
-  trigger={null}
-  style={{
-    background: 'transparent',
-    borderRight: '1px solid var(--border)'
-  }}
->
-  <Flex
-    vertical
-    align="center"
-    gap={12}
-    style={{ paddingTop: 16 }}
-  >
-    <Image
-      src={logo}
-      preview={false}
-      width={35}
-      height={35}
-      style={{ objectFit: "contain", borderRadius: 6 }}
-    />
+     {sidebarCollapsed && (
+        <Sider
+          width={75}
+          collapsedWidth={75}
+          trigger={null}
+          style={{
+            background: 'transparent',
+            borderRight: '1px solid var(--border)'
+          }}
+        >
+          <Flex
+            vertical
+            align="center"
+            gap={12}
+            style={{ paddingTop: 16 }}
+          >
+            <Image
+              src={logo}
+              preview={false}
+              width={35}
+              height={35}
+              style={{ objectFit: "contain", borderRadius: 6 }}
+            />
 
-    <Tooltip title="Expand sidebar" placement="right">
-      <Flex
-        onClick={() => dispatch(setSidebarCollapsed(false))}
-        align="center"
-        justify="center"
-        style={{
-          width: 40,
-          height: 40,
-          cursor: 'pointer',
-          color: 'var(--text-muted)',
-          background: 'var(--surface)',
-          borderRadius: 10,
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--shadow)'
-        }}
-      >
-        <MenuUnfoldOutlined />
-      </Flex>
-    </Tooltip>
-  </Flex>
-</Sider>
+            <Tooltip title="Expand sidebar" placement="right">
+              <Flex
+                onClick={() => dispatch(setSidebarCollapsed(false))}
+                align="center"
+                justify="center"
+                style={{
+                  width: 40,
+                  height: 40,
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  background: 'var(--surface)',
+                  borderRadius: 10,
+                  border: '1px solid var(--border)',
+                  boxShadow: 'var(--shadow)'
+                }}
+              >
+                <MenuUnfoldOutlined />
+              </Flex>
+            </Tooltip>
+          </Flex>
+        </Sider>
       )}
 
       <Layout style={{ background: 'var(--bg)' }}>
         {/* ── Header ── */}
-        <Header
-          style={{
-            background: 'var(--surface)',
-            borderBottom: '1px solid var(--border)',
-            padding: '0 24px',
-            height: 60,
-            position: 'sticky',
-            top: 0,
-            zIndex: 50,
-          }}
-        >
-          <Flex align="center" justify="space-between" style={{ height: '100%' }}>
+        <Header style={{
+          background: 'var(--surface)', borderBottom: '1px solid var(--border)',
+          padding: '0 24px', height: 60,
+          display: 'flex', alignItems: 'center', gap: 16,
+          position: 'sticky', top: 0, zIndex: 50,
+        }}>
+          <div style={{ flex: 1, maxWidth: 440 }}>
+            <Input
+              prefix={<SearchOutlined style={{ color: 'var(--text-muted)' }} />}
+              placeholder="Search bookmarks…"
+              allowClear
+              value={filters.search}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
 
-            {/* LEFT */}
-            <Flex style={{ width: 440 }}>
-              <Input
-                prefix={<SearchOutlined style={{ color: 'var(--text-muted)' }} />}
-                placeholder="Search bookmarks…"
-                allowClear
-                value={filters.search}
-                onChange={(e) => handleSearch(e.target.value)}
+          <div style={{ flex: 1 }} />
+
+          <Space size={8}>
+            {/* Theme toggle */}
+            <Tooltip title={isDark ? 'Light mode' : 'Dark mode'}>
+              <Button
+                onClick={() => dispatch(toggleTheme())}
+                icon={isDark ? <SunOutlined /> : <MoonOutlined />}
+                style={{
+                  borderColor: 'var(--border)', background: 'transparent',
+                  color: isDark ? '#f59e0b' : 'var(--text-muted)',
+                }}
               />
-            </Flex>
+            </Tooltip>
 
-            {/* RIGHT */}
-            <Space size={8}>
+            <Button
+              icon={<span>📥</span>}
+              onClick={() => dispatch(setImportModalOpen(true))}
+              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)', background: 'transparent', fontWeight: 500 }}
+            >
+              Import
+            </Button>
 
-              <Tooltip title={isDark ? 'Light mode' : 'Dark mode'}>
-                <Button
-                  onClick={() => dispatch(toggleTheme())}
-                  icon={isDark ? <SunOutlined /> : <MoonOutlined />}
-                  style={{
-                    borderColor: 'var(--border)',
-                    background: 'transparent',
-                    color: isDark ? '#f59e0b' : 'var(--text-muted)',
-                  }}
-                />
-              </Tooltip>
+            <Button
+              type="primary"
+              onClick={() => dispatch(setAddModalOpen(true))}
+              style={{ background: 'var(--primary)', border: 'none', fontWeight: 600 }}
+            >
+              + Add
+            </Button>
 
-              <Button
-                icon={<span>📥</span>}
-                onClick={() => dispatch(setImportModalOpen(true))}
-                style={{
-                  borderColor: 'var(--border)',
-                  color: 'var(--text-secondary)',
-                  background: 'transparent',
-                  fontWeight: 500,
-                }}
+            {/* User avatar */}
+            <Dropdown
+              trigger={['click']}
+              placement="bottomRight"
+              menu={{
+                items: [
+                  {
+                    key: 'user',
+                    label: (
+                      <div style={{ padding: '4px 0' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{user?.name}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{user?.email}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                          {stats?.total ?? 0} bookmarks
+                        </div>
+                      </div>
+                    ),
+                    disabled: true,
+                  },
+                  { type: 'divider' },
+                  { key: 'theme', label: isDark ? '☀️ Light mode' : '🌙 Dark mode', onClick: () => dispatch(toggleTheme()) },
+                  { type: 'divider' },
+                  { key: 'logout', label: 'Sign out', icon: <LogoutOutlined />, danger: true, onClick: async () => { try { const rt = localStorage.getItem('refreshToken'); if (rt) await logout({ refreshToken: rt }); } finally { dispatch(clearAuth()); } } },
+                ],
+              }}
+            >
+              <Avatar
+                size={32}
+                style={{ background: 'linear-gradient(135deg, var(--primary), #9b7aff)', cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}
               >
-                AI Import
-              </Button>
-
-              <Button
-                type="primary"
-                onClick={() => dispatch(setAddModalOpen(true))}
-                style={{
-                  background: 'var(--primary)',
-                  border: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                + Add
-              </Button>
-
-              <Dropdown
-                trigger={['click']}
-                placement="bottomRight"
-                menu={{
-                  items: [
-                    {
-                      key: 'user',
-                      label: (
-                        <Space direction="vertical" size={0} style={{ lineHeight: 1.4 }}>
-                          <Text strong>{user?.name}</Text>
-
-                          <Text style={{ fontSize: 12, opacity: 0.7 }}>
-                            {user?.email}
-                          </Text>
-
-                          <Text style={{ fontSize: 11, opacity: 0.6 }}>
-                            {stats?.total ?? 0} bookmarks
-                          </Text>
-                        </Space>
-                      ),
-                      disabled: true,
-                    },
-                    { type: 'divider' },
-                    {
-                      key: 'theme',
-                      label: isDark ? '☀️ Light mode' : '🌙 Dark mode',
-                      onClick: () => dispatch(toggleTheme()),
-                    },
-                    { type: 'divider' },
-                    {
-                      key: 'logout',
-                      label: 'Sign out',
-                      icon: <LogoutOutlined />,
-                      danger: true,
-                      onClick: () => dispatch(logoutThunk()),
-                    },
-                  ],
-                }}
-              >
-                <div>
-                  <Avatar
-                    size={32}
-                    style={{
-                      background: 'linear-gradient(135deg, var(--primary), #9b7aff)',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </Avatar>
-                </div>
-              </Dropdown>
-
-            </Space>
-
-          </Flex>
+                {user?.name?.charAt(0).toUpperCase()}
+              </Avatar>
+            </Dropdown>
+          </Space>
         </Header>
 
-        <Content
-          style={{
-            padding: 24,
-            height: 'calc(100vh - 40px)',   // header = 60
-            overflow: 'hidden',
-          }}>
-
+        <Content style={{ padding: '24px', overflow: 'auto' }}>
+       
+          {/* Active filter chip */}
+          {filters.search && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center' }}>
+              <Text style={{ fontSize: 12, color: 'var(--text-muted)' }}>Active:</Text>
+              <Button
+                type="link" size="small"
+                onClick={() => dispatch(resetFilters())}
+                style={{ color: 'var(--text-muted)', padding: 0 }}
+              >
+                Reset all
+              </Button>
+            </div>
+          )}
 
           {/* Kanban — handles all 3 levels */}
           <KanbanBoard />

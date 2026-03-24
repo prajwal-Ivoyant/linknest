@@ -1,86 +1,8 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { User } from '../types';
-import { authApi } from '../api';
+import { authApiSlice } from './authapiSlice';
 
-// ─── Thunks ──────────────────────────────────────────────────────────────────
-
-export const loginThunk = createAsyncThunk(
-  'auth/login',
-  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
-    try {
-      const { data } = await authApi.login(credentials);
-      return data.data as { user: User; accessToken: string; refreshToken: string };
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Login failed';
-      return rejectWithValue(msg);
-    }
-  }
-);
-
-export const registerThunk = createAsyncThunk(
-  'auth/register',
-  async (
-    payload: { name: string; email: string; password: string },
-    { rejectWithValue }
-  ) => {
-    try {
-      const { data } = await authApi.register(payload);
-      return data.data as { user: User; accessToken: string; refreshToken: string };
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Registration failed';
-      return rejectWithValue(msg);
-    }
-  }
-);
-
-export const logoutThunk = createAsyncThunk(
-  'auth/logout',
-  async (_, { getState }) => {
-    try {
-      const state = getState() as { auth: AuthState };
-      await authApi.logout(state.auth.refreshToken ?? undefined);
-    } catch { /* swallow */ }
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-  }
-);
-
-export const initializeAuthThunk = createAsyncThunk(
-  'auth/initialize',
-  async (_, { rejectWithValue }) => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return rejectWithValue('No token');
-    try {
-      const { data } = await authApi.me();
-      return data.data.user as User;
-    } catch {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      return rejectWithValue('Invalid token');
-    }
-  }
-);
-
-export const updateProfileThunk = createAsyncThunk(
-  'auth/updateProfile',
-  async (payload: Partial<{ name: string; preferences: object }>, { rejectWithValue }) => {
-    try {
-      const { data } = await authApi.updateProfile(payload);
-      return data.data.user as User;
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Update failed';
-      return rejectWithValue(msg);
-    }
-  }
-);
-
-// ─── State ───────────────────────────────────────────────────────────────────
+// ─── State ────────────────────────────────────────────────────────────────────
 
 export interface AuthState {
   user: User | null;
@@ -93,106 +15,124 @@ export interface AuthState {
 
 const initialState: AuthState = {
   user: null,
-  accessToken: null,
-  refreshToken: null,
+  accessToken: localStorage.getItem('accessToken'),
+  refreshToken: localStorage.getItem('refreshToken'),
   isAuthenticated: false,
   isLoading: false,
   error: null,
 };
 
-// ─── Slice ───────────────────────────────────────────────────────────────────
+// ─── Slice ────────────────────────────────────────────────────────────────────
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    // Manually set tokens (e.g. after axios interceptor refreshes them)
+    setTokens(state, action: PayloadAction<{ accessToken: string; refreshToken: string }>) {
+      state.accessToken  = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
+      localStorage.setItem('accessToken',  action.payload.accessToken);
+      localStorage.setItem('refreshToken', action.payload.refreshToken);
+    },
+    // Clear all auth state (called on logout or token expiry)
+    clearAuth(state) {
+      state.user            = null;
+      state.accessToken     = null;
+      state.refreshToken    = null;
+      state.isAuthenticated = false;
+      state.error           = null;
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    },
     clearError(state) {
       state.error = null;
     },
-    setTokens(
-      state,
-      action: PayloadAction<{ accessToken: string; refreshToken: string }>
-    ) {
-      state.accessToken = action.payload.accessToken;
-      state.refreshToken = action.payload.refreshToken;
-      localStorage.setItem('accessToken', action.payload.accessToken);
-      localStorage.setItem('refreshToken', action.payload.refreshToken);
-    },
   },
+
+  // ── RTK Query lifecycle → sync into local auth state ─────────────────────
   extraReducers: (builder) => {
+
     // ── Login ──
     builder
-      .addCase(loginThunk.pending, (state) => {
+      .addMatcher(authApiSlice.endpoints.login.matchPending, (state) => {
         state.isLoading = true;
-        state.error = null;
+        state.error     = null;
       })
-      .addCase(loginThunk.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
+      .addMatcher(authApiSlice.endpoints.login.matchFulfilled, (state, action) => {
+        state.isLoading       = false;
+        state.user            = action.payload.data.user;
+        state.accessToken     = action.payload.data.accessToken;
+        state.refreshToken    = action.payload.data.refreshToken;
         state.isAuthenticated = true;
-        localStorage.setItem('accessToken', action.payload.accessToken);
-        localStorage.setItem('refreshToken', action.payload.refreshToken);
       })
-      .addCase(loginThunk.rejected, (state, action) => {
+      .addMatcher(authApiSlice.endpoints.login.matchRejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload as string;
+        state.error = (action.payload as { data?: { message?: string } })?.data?.message
+          ?? action.error.message
+          ?? 'Login failed';
       });
 
     // ── Register ──
     builder
-      .addCase(registerThunk.pending, (state) => {
+      .addMatcher(authApiSlice.endpoints.register.matchPending, (state) => {
         state.isLoading = true;
-        state.error = null;
+        state.error     = null;
       })
-      .addCase(registerThunk.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload.user;
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
+      .addMatcher(authApiSlice.endpoints.register.matchFulfilled, (state, action) => {
+        state.isLoading       = false;
+        state.user            = action.payload.data.user;
+        state.accessToken     = action.payload.data.accessToken;
+        state.refreshToken    = action.payload.data.refreshToken;
         state.isAuthenticated = true;
-        localStorage.setItem('accessToken', action.payload.accessToken);
-        localStorage.setItem('refreshToken', action.payload.refreshToken);
       })
-      .addCase(registerThunk.rejected, (state, action) => {
+      .addMatcher(authApiSlice.endpoints.register.matchRejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload as string;
+        state.error = (action.payload as { data?: { message?: string } })?.data?.message
+          ?? action.error.message
+          ?? 'Registration failed';
       });
 
     // ── Logout ──
-    builder.addCase(logoutThunk.fulfilled, (state) => {
-      state.user = null;
-      state.accessToken = null;
-      state.refreshToken = null;
+    builder.addMatcher(authApiSlice.endpoints.logout.matchFulfilled, (state) => {
+      state.user            = null;
+      state.accessToken     = null;
+      state.refreshToken    = null;
       state.isAuthenticated = false;
     });
 
-    // ── Initialize ──
+    // ── Get Me (app initialization) ──
     builder
-      .addCase(initializeAuthThunk.pending, (state) => {
+      .addMatcher(authApiSlice.endpoints.getMe.matchPending, (state) => {
         state.isLoading = true;
       })
-      .addCase(initializeAuthThunk.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload;
+      .addMatcher(authApiSlice.endpoints.getMe.matchFulfilled, (state, action) => {
+        state.isLoading       = false;
+        state.user            = action.payload.data.user;
         state.isAuthenticated = true;
-        state.accessToken = localStorage.getItem('accessToken');
       })
-      .addCase(initializeAuthThunk.rejected, (state) => {
-        state.isLoading = false;
-        state.user = null;
+      .addMatcher(authApiSlice.endpoints.getMe.matchRejected, (state) => {
+        state.isLoading       = false;
         state.isAuthenticated = false;
-        state.accessToken = null;
-        state.refreshToken = null;
+        state.user            = null;
+        state.accessToken     = null;
+        state.refreshToken    = null;
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
       });
 
-    // ── Update profile ──
-    builder.addCase(updateProfileThunk.fulfilled, (state, action) => {
-      state.user = action.payload;
+    // ── Refresh Token ──
+    builder.addMatcher(authApiSlice.endpoints.refreshToken.matchFulfilled, (state, action) => {
+      state.accessToken  = action.payload.data.accessToken;
+      state.refreshToken = action.payload.data.refreshToken;
+    });
+
+    // ── Update Profile ──
+    builder.addMatcher(authApiSlice.endpoints.updateProfile.matchFulfilled, (state, action) => {
+      state.user = action.payload.data.user;
     });
   },
 });
 
-export const { clearError, setTokens } = authSlice.actions;
+export const { setTokens, clearAuth, clearError } = authSlice.actions;
 export default authSlice.reducer;

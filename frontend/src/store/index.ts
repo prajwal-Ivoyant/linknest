@@ -6,6 +6,7 @@ import {
 import storage from 'redux-persist/lib/storage';
 import authReducer from './authSlice';
 import uiReducer from './uiSlice';
+import { authApiSlice } from './authapiSlice';
 
 // ─── Persist configs ──────────────────────────────────────────────────────────
 
@@ -15,16 +16,17 @@ const authPersistConfig = {
   whitelist: ['user', 'accessToken', 'refreshToken', 'isAuthenticated'],
 };
 
-// Persist view + theme preference only (not filters/modals/selection)
 const uiPersistConfig = {
   key: 'linknest-ui',
   storage,
-  whitelist: ['view', 'theme'],
+  whitelist: ['theme'],
 };
 
 const rootReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer),
-  ui: persistReducer(uiPersistConfig, uiReducer),
+  ui:   persistReducer(uiPersistConfig,   uiReducer),
+  // RTK Query cache reducer — NOT persisted (always fresh)
+  [authApiSlice.reducerPath]: authApiSlice.reducer,
 });
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -36,17 +38,18 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }),
+    })
+    // RTK Query middleware — handles cache lifetime, polling, invalidation
+    .concat(authApiSlice.middleware),
   devTools: import.meta.env.DEV,
 });
 
 export const persistor = persistStore(store, {}, () => {
-  // After rehydration, apply persisted theme to document
   const theme = store.getState().ui.theme ?? 'light';
   document.documentElement.setAttribute('data-theme', theme);
 });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type RootState = ReturnType<typeof store.getState>;
+export type RootState   = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Tabs, Typography, message, Image, Flex } from 'antd';
 import { Navigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { loginThunk, registerThunk, clearError } from '../../store/authSlice';
-import logo from "../../../public/logo.png"
+import { useAppSelector, useAppDispatch } from '../../store/hooks';
+import { clearError } from '../../store/authSlice';
+import { useLoginMutation, useRegisterMutation } from '../../store/authapiSlice';
+import logo from "../../../public/logo.png";
 
 const { Title, Text } = Typography;
 
 const AuthPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { isAuthenticated, isLoading, error } = useAppSelector((s) => s.auth);
+  const { isAuthenticated, error } = useAppSelector((s) => s.auth);
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+
+  // RTK Query mutation hooks — each returns [triggerFn, { isLoading, error }]
+  const [login,    { isLoading: loginLoading    }] = useLoginMutation();
+  const [register, { isLoading: registerLoading }] = useRegisterMutation();
+
+  const isLoading = loginLoading || registerLoading;
 
   React.useEffect(() => {
     if (error) {
@@ -21,12 +28,23 @@ const AuthPage: React.FC = () => {
 
   if (isAuthenticated) return <Navigate to="/app" replace />;
 
-  const handleLogin = (values: { email: string; password: string }) => {
-    dispatch(loginThunk(values));
+  const handleLogin = async (values: { email: string; password: string }) => {
+    try {
+      await login(values).unwrap();
+      // authSlice.extraReducers handles setting user + tokens via matchFulfilled
+    } catch (err: unknown) {
+      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Login failed';
+      message.error(msg);
+    }
   };
 
-  const handleRegister = (values: { name: string; email: string; password: string }) => {
-    dispatch(registerThunk(values));
+  const handleRegister = async (values: { name: string; email: string; password: string }) => {
+    try {
+      await register(values).unwrap();
+    } catch (err: unknown) {
+      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Registration failed';
+      message.error(msg);
+    }
   };
 
   return (
@@ -81,7 +99,7 @@ const AuthPage: React.FC = () => {
           onChange={(k) => setActiveTab(k as 'login' | 'register')}
           centered
           items={[
-            { key: 'login', label: 'Sign In' },
+            { key: 'login',    label: 'Sign In'        },
             { key: 'register', label: 'Create Account' },
           ]}
           style={{ marginBottom: 8 }}
@@ -106,10 +124,7 @@ const AuthPage: React.FC = () => {
             </Form.Item>
 
             <Button
-              type="primary"
-              htmlType="submit"
-              loading={isLoading}
-              block
+              type="primary" htmlType="submit" loading={isLoading} block
               style={{
                 height: 44, borderRadius: 'var(--radius-input)', fontWeight: 600,
                 background: 'linear-gradient(135deg, #6c47ff 0%, #8b6aff 100%)',
@@ -146,10 +161,7 @@ const AuthPage: React.FC = () => {
             </Form.Item>
 
             <Button
-              type="primary"
-              htmlType="submit"
-              loading={isLoading}
-              block
+              type="primary" htmlType="submit" loading={isLoading} block
               style={{
                 height: 44, borderRadius: 'var(--radius-input)', fontWeight: 600,
                 background: 'linear-gradient(135deg, #6c47ff 0%, #8b6aff 100%)',
