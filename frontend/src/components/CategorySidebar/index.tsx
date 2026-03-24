@@ -91,6 +91,7 @@ const CategorySidebar: React.FC = () => {
         </Tooltip>
       </div>
 
+<<<<<<< Updated upstream
       {/* Add button
       <div style={{ padding: '0 12px 12px' }}>
         <button onClick={() => dispatch(setAddModalOpen(true))}
@@ -150,6 +151,20 @@ const CategorySidebar: React.FC = () => {
           <Text style={{ fontSize: 13, color: 'inherit' }}>Import Bookmarks</Text>
         </div> */}
       </div>
+=======
+      {/* Scroll Area */}
+      <Content
+        className="sidebar-scroll"
+        style={{
+          height: "calc(100vh - 64px)",   // header height
+          overflowY: "auto",
+          overflowX: "hidden"
+        }}
+      >
+        <SidebarMainNav />
+        <SidebarBrowseTopicsList />
+      </Content>
+>>>>>>> Stashed changes
     </Sider>
   );
 };

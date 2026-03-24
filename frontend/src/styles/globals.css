@@ -52,10 +52,24 @@ body,
   -moz-osx-font-smoothing: grayscale;
 }
 
+<<<<<<< Updated upstream
 /* ─── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
+=======
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 0px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── Sidebar Premium Scrollbar (auto-fade) ───────────────────────────── */
+
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+>>>>>>> Stashed changes
 }
 
 ::-webkit-scrollbar-track {

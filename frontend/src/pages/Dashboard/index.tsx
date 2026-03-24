@@ -63,7 +63,14 @@ const Dashboard: React.FC = () => {
   const isFiltered = !!(filters.browserSource !== 'all' || filters.topicCategory !== 'all' || filters.isFavorite);
 
   return (
-    <Layout style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <Layout
+      style={{
+        height: '100vh',
+        overflow: 'hidden',
+        background: 'var(--bg)'
+      }}
+      className='scroll-bar'
+    >
       <CategorySidebar />
 
       {sidebarCollapsed && (
@@ -77,6 +84,7 @@ const Dashboard: React.FC = () => {
       )}
 
       <Layout style={{ background: 'var(--bg)' }}>
+<<<<<<< Updated upstream
         <Header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 16, position: 'sticky', top: 0, zIndex: 50 }}>
           <div style={{ flex: 1, maxWidth: 480 }}>
             <Input prefix={<SearchOutlined style={{ color: 'var(--text-muted)' }} />} placeholder="Search bookmarks…" allowClear value={filters.search} onChange={(e) => handleSearch(e.target.value)} style={{ borderRadius: 'var(--radius-input)', borderColor: 'var(--border)' }} />
@@ -148,6 +156,139 @@ const Dashboard: React.FC = () => {
               <Button type="link" size="small" onClick={() => dispatch(resetFilters())} style={{ color: 'var(--text-muted)', padding: 0 }}>Clear all</Button>
             </div>
           )}
+=======
+        {/* ── Header ── */}
+        <Header
+          style={{
+            background: 'var(--surface)',
+            borderBottom: '1px solid var(--border)',
+            padding: '0 24px',
+            height: 60,
+            position: 'sticky',
+            top: 0,
+            //zIndex: 50,
+          }}
+        >
+          <Flex align="center" justify="space-between" style={{ height: '100%' }}>
+
+            {/* LEFT */}
+            <Flex style={{ width: 440 }}>
+              <Input
+                prefix={<SearchOutlined style={{ color: 'var(--text-muted)' }} />}
+                placeholder="Search bookmarks…"
+                allowClear
+                value={filters.search}
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+            </Flex>
+
+            {/* RIGHT */}
+            <Space size={8}>
+
+              <Tooltip title={isDark ? 'Light mode' : 'Dark mode'}>
+                <Button
+                  onClick={() => dispatch(toggleTheme())}
+                  icon={isDark ? <SunOutlined /> : <MoonOutlined />}
+                  style={{
+                    borderColor: 'var(--border)',
+                    background: 'transparent',
+                    color: isDark ? '#f59e0b' : 'var(--text-muted)',
+                  }}
+                />
+              </Tooltip>
+
+              <Button
+                icon={<span>📥</span>}
+                onClick={() => dispatch(setImportModalOpen(true))}
+                style={{
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-secondary)',
+                  background: 'transparent',
+                  fontWeight: 500,
+                }}
+              >
+                AI Import
+              </Button>
+
+              <Button
+                type="primary"
+                onClick={() => dispatch(setAddModalOpen(true))}
+                style={{
+                  background: 'var(--primary)',
+                  border: 'none',
+                  fontWeight: 600,
+                }}
+              >
+                + Add
+              </Button>
+
+              <Dropdown
+                trigger={['click']}
+                placement="bottomRight"
+                menu={{
+                  items: [
+                    {
+                      key: 'user',
+                      label: (
+                        <Space direction="vertical" size={0} style={{ lineHeight: 1.4 }}>
+                          <Text strong>{user?.name}</Text>
+
+                          <Text style={{ fontSize: 12, opacity: 0.7 }}>
+                            {user?.email}
+                          </Text>
+
+                          <Text style={{ fontSize: 11, opacity: 0.6 }}>
+                            {stats?.total ?? 0} bookmarks
+                          </Text>
+                        </Space>
+                      ),
+                      disabled: true,
+                    },
+                    { type: 'divider' },
+                    {
+                      key: 'theme',
+                      label: isDark ? '☀️ Light mode' : '🌙 Dark mode',
+                      onClick: () => dispatch(toggleTheme()),
+                    },
+                    { type: 'divider' },
+                    {
+                      key: 'logout',
+                      label: 'Sign out',
+                      icon: <LogoutOutlined />,
+                      danger: true,
+                      onClick: () => dispatch(logoutThunk()),
+                    },
+                  ],
+                }}
+              >
+                <div>
+                  <Avatar
+                    size={32}
+                    style={{
+                      background: 'linear-gradient(135deg, var(--primary), #9b7aff)',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </Avatar>
+                </div>
+              </Dropdown>
+
+            </Space>
+
+          </Flex>
+        </Header>
+
+        <Content
+          style={{
+            maxHeight: "100vh",
+            padding: 24,
+            height: 'calc(100vh - 60px)',   // header = 60
+            overflow: 'hidden',
+          }}
+        >
+>>>>>>> Stashed changes
 
           {isLoading ? (
             <div style={{ display: 'grid', gridTemplateColumns: view === 'grid' ? 'repeat(auto-fill, minmax(280px, 1fr))' : '1fr', gap: 12 }}>

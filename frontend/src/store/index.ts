@@ -1,10 +1,13 @@
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from 'redux-persist';
+import {
+  persistStore, persistReducer,
+  FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER,
+} from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import authReducer from './authSlice';
 import uiReducer from './uiSlice';
 
-// ─── Persist config — only persist auth ──────────────────────────────────────
+// ─── Persist configs ──────────────────────────────────────────────────────────
 
 const authPersistConfig = {
   key: 'linknest-auth',
@@ -12,9 +15,16 @@ const authPersistConfig = {
   whitelist: ['user', 'accessToken', 'refreshToken', 'isAuthenticated'],
 };
 
+// Persist view + theme preference only (not filters/modals/selection)
+const uiPersistConfig = {
+  key: 'linknest-ui',
+  storage,
+  whitelist: ['view', 'theme'],
+};
+
 const rootReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer),
-  ui: uiReducer, // UI state is session-only, no persistence needed
+  ui: persistReducer(uiPersistConfig, uiReducer),
 });
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -24,14 +34,17 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        // Ignore redux-persist actions in serializability checks
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
     }),
   devTools: import.meta.env.DEV,
 });
 
-export const persistor = persistStore(store);
+export const persistor = persistStore(store, {}, () => {
+  // After rehydration, apply persisted theme to document
+  const theme = store.getState().ui.theme ?? 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

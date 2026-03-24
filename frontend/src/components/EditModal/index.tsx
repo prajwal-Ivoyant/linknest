@@ -45,7 +45,16 @@ const EditModal: React.FC = () => {
   };
 
   return (
+<<<<<<< Updated upstream
     <Modal open={isOpen} onCancel={handleClose} footer={null} width={500}
+=======
+    <Modal
+      open={isOpen}
+      onCancel={handleClose}
+      footer={null}
+      width={500}
+      centered
+>>>>>>> Stashed changes
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: isEditing ? '#fef3c7' : 'var(--primary-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
