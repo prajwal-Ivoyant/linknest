@@ -1,49 +1,75 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ─── Design Tokens ─────────────────────────────────────────────────────────── */
-:root {
-  --bg: #f5f4f0;
-  --surface: #ffffff;
-  --primary: #6c47ff;
-  --primary-soft: #ede9ff;
-  --border: #e8e5f0;
+/* ─── Light Theme Tokens ─────────────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  --bg:             #f5f4f0;
+  --bg-subtle:      #efede8;
+  --surface:        #ffffff;
+  --surface-raised: #ffffff;
+  --surface-overlay: rgba(255,255,255,0.92);
+  --primary:        #6c47ff;
+  --primary-soft:   #ede9ff;
+  --primary-hover:  #5a35e8;
+  --border:         #e8e5f0;
+  --border-strong:  #d4d0e8;
 
-  --text-primary: #1a1825;
+  --text-primary:   #1a1825;
   --text-secondary: #4a4760;
-  --text-muted: #9491a8;
+  --text-muted:     #9491a8;
+  --text-placeholder: #bbb8cc;
 
-  --radius-card: 10px;
+  --skeleton:       #ece9f5;
+  --scrollbar-thumb: #dcd9ea;
+
+  --shadow-sm:   0 1px 3px rgba(26,24,37,0.06);
+  --shadow:      0 2px 12px rgba(108,71,255,0.08);
+  --shadow-hover: 0 6px 24px rgba(108,71,255,0.14);
+  --shadow-card: 0 1px 3px rgba(26,24,37,0.06), 0 4px 16px rgba(108,71,255,0.06);
+  --shadow-modal: 0 24px 64px rgba(26,24,37,0.14);
+}
+
+/* ─── Dark Theme Tokens ───────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:             #100f18;
+  --bg-subtle:      #161422;
+  --surface:        #1c1a2e;
+  --surface-raised: #242038;
+  --surface-overlay: rgba(28,26,46,0.95);
+  --primary:        #7c5cff;
+  --primary-soft:   rgba(124,92,255,0.15);
+  --primary-hover:  #6c47ff;
+  --border:         #2e2a45;
+  --border-strong:  #3d3860;
+
+  --text-primary:   #edeaff;
+  --text-secondary: #a39cc0;
+  --text-muted:     #6b6688;
+  --text-placeholder: #4a4668;
+
+  --skeleton:       #231f38;
+  --scrollbar-thumb: #2e2a45;
+
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.3);
+  --shadow:      0 2px 16px rgba(0,0,0,0.4);
+  --shadow-hover: 0 6px 28px rgba(0,0,0,0.5);
+  --shadow-card: 0 1px 4px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.25);
+  --shadow-modal: 0 24px 64px rgba(0,0,0,0.6);
+}
+
+/* ─── Shared Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --radius-card:  10px;
   --radius-input: 8px;
-  --radius-pill: 20px;
-
-  --shadow: 0 2px 12px rgba(108, 71, 255, 0.08);
-  --shadow-hover: 0 6px 24px rgba(108, 71, 255, 0.14);
-  --shadow-card: 0 1px 3px rgba(26, 24, 37, 0.06), 0 4px 16px rgba(108, 71, 255, 0.06);
-
+  --radius-pill:  20px;
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 
-Background #100f18 — deep near-black with a purple tint
-Surface #1c1a2e — dark purple-grey for cards & sidebar
-Border #2e2a45 — subtle purple-tinted dividers
-Text #edeaff — soft lavender white (easier on eyes than pure white)
-Accent #7c5cff — slightly lighter purple so it pops on dark backgrounds 
-*/
+/* ─── Reset & Base ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ─── Reset & Base ───────────────────────────────────────────────────────────── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html,
-body,
-#root {
+html, body, #root {
   height: 100%;
   font-family: var(--font);
   background: var(--bg);
@@ -52,14 +78,8 @@ body,
   -moz-osx-font-smoothing: grayscale;
 }
 
-<<<<<<< Updated upstream
-/* ─── Scrollbar ───────────────────────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-=======
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 0px; height: 4px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
@@ -69,25 +89,28 @@ body,
 
 .sidebar-scroll::-webkit-scrollbar {
   width: 5px;
->>>>>>> Stashed changes
 }
 
-::-webkit-scrollbar-track {
+.sidebar-scroll::-webkit-scrollbar-thumb {
   background: transparent;
+  border-radius: 8px;
+  transition: background 0.2s ease;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
+/* ─── Ant Design Layout — use CSS vars so they follow our theme ──────────── */
+/* NOTE: We only override layout/structural things here.
+   All component colors (buttons, inputs, modals, etc.) are handled
+   by ConfigProvider tokens in App.tsx — do NOT add .ant-* overrides here
+   or they will fight against the darkAlgorithm. */
 
-/* ─── Ant Design Overrides ───────────────────────────────────────────────── */
 .ant-layout {
   background: var(--bg) !important;
+  min-height: 100vh;
 }
 
 .ant-layout-sider {
@@ -95,165 +118,54 @@ body,
   border-right: 1px solid var(--border) !important;
 }
 
+.ant-layout-header {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  line-height: normal !important;
+}
+
+/* Primary button gradient */
 .ant-btn-primary {
   background: var(--primary) !important;
   border-color: var(--primary) !important;
   box-shadow: none !important;
 }
-
 .ant-btn-primary:hover {
-  background: #5a35e8 !important;
-  border-color: #5a35e8 !important;
+  background: var(--primary-hover) !important;
+  border-color: var(--primary-hover) !important;
 }
 
-.ant-input,
-.ant-input-affix-wrapper,
-.ant-select-selector {
-  border-radius: var(--radius-input) !important;
-  border-color: var(--border) !important;
-  background: var(--surface) !important;
-}
-
+/* Focus ring for inputs */
 .ant-input:focus,
 .ant-input-affix-wrapper:focus,
-.ant-input-affix-wrapper-focused,
-.ant-select-focused .ant-select-selector {
-  border-color: var(--primary) !important;
-  box-shadow: 0 0 0 2px rgba(108, 71, 255, 0.12) !important;
+.ant-input-affix-wrapper-focused {
+  box-shadow: 0 0 0 2px rgba(124,92,255,0.15) !important;
 }
 
-.ant-modal-content {
-  border-radius: 14px !important;
-  overflow: hidden;
-}
-
+/* Tag pill shape */
 .ant-tag {
   border-radius: var(--radius-pill) !important;
-  font-size: 11px !important;
-  font-weight: 500 !important;
   border: none !important;
-}
-
-.ant-menu {
-  background: transparent !important;
-  border: none !important;
-}
-
-.ant-menu-item {
-  border-radius: var(--radius-input) !important;
-  margin: 2px 8px !important;
-  width: calc(100% - 16px) !important;
-}
-
-.ant-menu-item-selected {
-  background: var(--primary-soft) !important;
-  color: var(--primary) !important;
-}
-
-.ant-tooltip-inner {
-  border-radius: var(--radius-input) !important;
-  font-size: 12px !important;
-}
-
-.ant-message-notice-content {
-  border-radius: var(--radius-input) !important;
-  box-shadow: var(--shadow) !important;
-}
-
-.ant-card {
-  border-radius: var(--radius-card) !important;
-  border-color: var(--border) !important;
-  box-shadow: var(--shadow-card) !important;
-}
-
-/* ─── Utilities ──────────────────────────────────────────────────────────── */
-.text-primary {
-  color: var(--text-primary);
-}
-
-.text-secondary {
-  color: var(--text-secondary);
-}
-
-.text-muted {
-  color: var(--text-muted);
 }
 
 /* ─── Animations ─────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 @keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
 }
 
-.fade-in {
-  animation: fadeIn 0.25s ease forwards;
-}
+.fade-in { animation: fadeIn 0.25s ease forwards; }
 
-.slide-in {
-  animation: slideIn 0.2s ease forwards;
-}
-
-/* Staggered grid animation */
-.bookmark-grid-item {
-  animation: fadeIn 0.3s ease forwards;
-  opacity: 0;
-}
-
-.bookmark-grid-item:nth-child(1) {
-  animation-delay: 0.03s;
-}
-
-.bookmark-grid-item:nth-child(2) {
-  animation-delay: 0.06s;
-}
-
-.bookmark-grid-item:nth-child(3) {
-  animation-delay: 0.09s;
-}
-
-.bookmark-grid-item:nth-child(4) {
-  animation-delay: 0.12s;
-}
-
-.bookmark-grid-item:nth-child(5) {
-  animation-delay: 0.15s;
-}
-
-.bookmark-grid-item:nth-child(6) {
-  animation-delay: 0.18s;
-}
-
-.bookmark-grid-item:nth-child(n+7) {
-  animation-delay: 0.2s;
-}
+/* Staggered card animation */
+.bookmark-grid-item { animation: fadeIn 0.3s ease forwards; opacity: 0; }
+.bookmark-grid-item:nth-child(1)  { animation-delay: 0.03s; }
+.bookmark-grid-item:nth-child(2)  { animation-delay: 0.06s; }
+.bookmark-grid-item:nth-child(3)  { animation-delay: 0.09s; }
+.bookmark-grid-item:nth-child(4)  { animation-delay: 0.12s; }
+.bookmark-grid-item:nth-child(5)  { animation-delay: 0.15s; }
+.bookmark-grid-item:nth-child(6)  { animation-delay: 0.18s; }
+.bookmark-grid-item:nth-child(n+7){ animation-delay: 0.2s;  }

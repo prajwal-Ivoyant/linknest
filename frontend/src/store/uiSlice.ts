@@ -1,11 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { BookmarkFilters } from '../types';
 
-// ─── State ───────────────────────────────────────────────────────────────────
-
 export interface UIState {
   filters: BookmarkFilters;
-  view: 'grid' | 'list';
+  theme: 'light' | 'dark';
   selectedIds: string[];
   sidebarCollapsed: boolean;
   importModalOpen: boolean;
@@ -22,20 +20,23 @@ const DEFAULT_FILTERS: BookmarkFilters = {
   sortBy: 'createdAt',
   sortOrder: 'desc',
   page: 1,
-  limit: 24,
+  limit: 50,
 };
+
+const getSystemTheme = (): 'light' | 'dark' =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 
 const initialState: UIState = {
   filters: DEFAULT_FILTERS,
-  view: 'grid',
+  theme: getSystemTheme(),
   selectedIds: [],
   sidebarCollapsed: false,
   importModalOpen: false,
   addModalOpen: false,
   editBookmarkId: null,
 };
-
-// ─── Slice ───────────────────────────────────────────────────────────────────
 
 const uiSlice = createSlice({
   name: 'ui',
@@ -50,17 +51,20 @@ const uiSlice = createSlice({
     setPage(state, action: PayloadAction<number>) {
       state.filters.page = action.payload;
     },
-    setView(state, action: PayloadAction<'grid' | 'list'>) {
-      state.view = action.payload;
+    setTheme(state, action: PayloadAction<'light' | 'dark'>) {
+      state.theme = action.payload;
+      document.documentElement.setAttribute('data-theme', action.payload);
+    },
+    toggleTheme(state) {
+      const next = state.theme === 'light' ? 'dark' : 'light';
+      state.theme = next;
+      document.documentElement.setAttribute('data-theme', next);
     },
     toggleSelected(state, action: PayloadAction<string>) {
       const id = action.payload;
       const idx = state.selectedIds.indexOf(id);
-      if (idx === -1) {
-        state.selectedIds.push(id);
-      } else {
-        state.selectedIds.splice(idx, 1);
-      }
+      if (idx === -1) state.selectedIds.push(id);
+      else state.selectedIds.splice(idx, 1);
     },
     clearSelected(state) {
       state.selectedIds = [];
@@ -84,17 +88,10 @@ const uiSlice = createSlice({
 });
 
 export const {
-  setFilters,
-  resetFilters,
-  setPage,
-  setView,
-  toggleSelected,
-  clearSelected,
-  selectAll,
-  setSidebarCollapsed,
-  setImportModalOpen,
-  setAddModalOpen,
-  setEditBookmarkId,
+  setFilters, resetFilters, setPage,
+  setTheme, toggleTheme,
+  toggleSelected, clearSelected, selectAll,
+  setSidebarCollapsed, setImportModalOpen, setAddModalOpen, setEditBookmarkId,
 } = uiSlice.actions;
 
 export default uiSlice.reducer;

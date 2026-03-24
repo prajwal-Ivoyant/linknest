@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Typography, Spin, Button, Dropdown, Checkbox, Tag, Space } from 'antd';
+import { Typography, Spin, Button, Empty, Dropdown, Checkbox, Tag, Space } from 'antd';
 import {
   MoreOutlined, DeleteOutlined, CloseOutlined,
-  CheckSquareOutlined, SortAscendingOutlined,
+  RollbackOutlined, CheckSquareOutlined, BorderOutlined,
 } from '@ant-design/icons';
 import {
   DndContext, DragOverlay, PointerSensor,
@@ -19,10 +19,10 @@ import {
   setFilters, resetFilters,
   toggleSelected, clearSelected, selectAll,
 } from '../../store/uiSlice';
+import EmptyState from '../EmptyState';
 import KanbanColumn from './KanbanColumn';
 import KanbanCard from './KanbanCard';
 import { BROWSER_EMOJIS, TOPIC_EMOJIS, BROWSER_COLORS, TOPIC_COLORS } from '../../utils/helpers';
-import EmptyState from '../EmptyState';
 
 const { Text } = Typography;
 
@@ -38,15 +38,10 @@ const FocusedList: React.FC<{
 
   // Selection mode — off by default, toggled via 3-dot menu
   const [selectionMode, setSelectionMode] = useState(false);
-  // Sort state — default newest first
-  const [sortBy, setSortBy] = useState<string>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const { data, isLoading } = useBookmarks({
     browserSource: browserSource as BrowserSource,
     topicCategory: topicCategory as TopicCategory,
-    sortBy,
-    sortOrder,
     limit: 100,
   });
   const { mutate: bulkDelete, isPending: deleting } = useBulkDeleteBookmarks();
@@ -106,10 +101,12 @@ const FocusedList: React.FC<{
   }
 
   if (bookmarks.length === 0) {
-    return <EmptyState
-      isFiltered
-      isSearching={false}
-    />;
+    return (
+      <EmptyState
+        isFiltered
+        isSearching={false}
+      />
+    );
   }
 
   return (
@@ -172,65 +169,25 @@ const FocusedList: React.FC<{
           )}
         </div>
 
-        {/* Right side — Sort dropdown + 3-dot menu */}
+        {/* Right side — Reset + 3-dot menu */}
         <Space size={6}>
-          {/* Sort dropdown — same style as the image */}
-          <Dropdown
-            trigger={['click']}
-            placement="bottomRight"
-            menu={{
-              selectedKeys: [`${sortBy}-${sortOrder}`],
-              items: [
-                {
-                  key: 'createdAt-desc',
-                  icon: <SortAscendingOutlined />,
-                  label: 'Newest first',
-                  onClick: () => { setSortBy('createdAt'); setSortOrder('desc'); },
-                },
-                {
-                  key: 'createdAt-asc',
-                  icon: <SortAscendingOutlined />,
-                  label: 'Oldest first',
-                  onClick: () => { setSortBy('createdAt'); setSortOrder('asc'); },
-                },
-                {
-                  key: 'title-asc',
-                  label: 'A → Z',
-                  onClick: () => { setSortBy('title'); setSortOrder('asc'); },
-                },
-                {
-                  key: 'title-desc',
-                  label: 'Z → A',
-                  onClick: () => { setSortBy('title'); setSortOrder('desc'); },
-                },
-              ],
+          <Button
+            size="small"
+            icon={<RollbackOutlined />}
+            onClick={onReset}
+            style={{
+              borderColor: 'var(--border)', color: 'var(--text-secondary)',
+              borderRadius: 'var(--radius-input)', fontSize: 12,
             }}
           >
-            <Button
-              size="small"
-              icon={<SortAscendingOutlined />}
-              style={{
-                borderColor: 'var(--border)',
-                color: 'var(--text-secondary)',
-                borderRadius: 'var(--radius-input)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              {sortBy === 'createdAt' && sortOrder === 'desc' && 'Newest first'}
-              {sortBy === 'createdAt' && sortOrder === 'asc' && 'Oldest first'}
-              {sortBy === 'title' && sortOrder === 'asc' && 'A → Z'}
-              {sortBy === 'title' && sortOrder === 'desc' && 'Z → A'}
-            </Button>
-          </Dropdown>
+            Reset
+          </Button>
 
-          {/* 3-dot menu — Select option */}
           <Dropdown
             menu={{ items: menuItems }}
             trigger={['click']}
             placement="bottomRight"
-            disabled={selectionMode}
+            disabled={selectionMode} // hide when already in selection mode
           >
             <Button
               size="small"
@@ -314,11 +271,7 @@ const KanbanBoard: React.FC = () => {
 
   const groupedParams = isLevel2
     ? { by: 'topicCategory' as const, browserSource, limit: 20, search: filters.search }
-    // Level 1: group by browser — but pass topicCategory so columns are filtered by topic when one is selected
-    : {
-      by: 'browserSource' as const, limit: 20, search: filters.search,
-      topicCategory: topicCategory && topicCategory !== 'all' ? topicCategory : undefined
-    };
+    : { by: 'browserSource' as const, limit: 20, search: filters.search };
 
   const { data: groupedData, isLoading } = useGroupedBookmarks(
     (isSpecialView || isSearching) ? { by: 'browserSource', limit: 0 } : groupedParams
@@ -362,23 +315,10 @@ const KanbanBoard: React.FC = () => {
         onClick={() => dispatch(resetFilters())}
         style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, fontSize: 13 }}
       >
-        🔗 All Bookmarks 
+        🔗 All Bookmarks
       </span>,
     ];
 
-    // Level 1 with topic filter: All Bookmarks › 🎨 Design (browser columns scoped to this topic)
-    if (topicCategory && topicCategory !== 'all' && (!browserSource || browserSource === 'all')) {
-      const emoji = TOPIC_EMOJIS[topicCategory as TopicCategory];
-      const color = TOPIC_COLORS[topicCategory as TopicCategory];
-      crumbs.push(
-        <span key="sep-topic" style={{ color: 'var(--text-muted)', margin: '0 6px' }}>›</span>,
-        <span key="topic-only" style={{ color, fontWeight: 600, fontSize: 18 }}>
-          {emoji} {topicCategory}
-        </span>
-      );
-    }
-
-    // Level 2+: show browser in breadcrumb
     if (browserSource && browserSource !== 'all') {
       const emoji = BROWSER_EMOJIS[browserSource as BrowserSource];
       const color = BROWSER_COLORS[browserSource as BrowserSource];
@@ -390,7 +330,7 @@ const KanbanBoard: React.FC = () => {
           style={{
             cursor: isLevel3 ? 'pointer' : 'default',
             color: isLevel3 ? color : 'var(--text-primary)',
-            fontWeight: 600, fontSize: 18,
+            fontWeight: 600, fontSize: 13,
           }}
         >
           {emoji} {browserSource}
@@ -398,13 +338,12 @@ const KanbanBoard: React.FC = () => {
       );
     }
 
-    // Level 3: show topic after browser
-    if (browserSource && browserSource !== 'all' && topicCategory && topicCategory !== 'all') {
+    if (topicCategory && topicCategory !== 'all') {
       const emoji = TOPIC_EMOJIS[topicCategory as TopicCategory];
       const color = TOPIC_COLORS[topicCategory as TopicCategory];
       crumbs.push(
         <span key="sep2" style={{ color: 'var(--text-muted)', margin: '0 6px' }}>›</span>,
-        <span key="topic" style={{ color, fontWeight: 600, fontSize: 18 }}>
+        <span key="topic" style={{ color, fontWeight: 600, fontSize: 13 }}>
           {emoji} {topicCategory}
         </span>
       );
@@ -413,7 +352,15 @@ const KanbanBoard: React.FC = () => {
     return (
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 2 }}>
         {crumbs}
-        {(browserSource !== 'all' || topicCategory !== 'all')}
+        {(browserSource !== 'all' || topicCategory !== 'all') && (
+          <Button
+            type="link" size="small"
+            onClick={() => dispatch(resetFilters())}
+            style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 8 }}
+          >
+            ← Reset
+          </Button>
+        )}
       </div>
     );
   };

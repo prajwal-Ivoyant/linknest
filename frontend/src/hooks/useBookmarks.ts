@@ -5,9 +5,12 @@ import type { BookmarkFilters, Bookmark, PaginatedBookmarks, DashboardStats } fr
 
 export const QUERY_KEYS = {
   bookmarks: (filters: BookmarkFilters) => ['bookmarks', filters],
+  grouped: (params: object) => ['bookmarks', 'grouped', params],
   stats: () => ['bookmarks', 'stats'],
   bookmark: (id: string) => ['bookmark', id],
 };
+
+// ─── Flat list (used by focused view Level 3 + Favorites + Archive) ───────────
 
 export const useBookmarks = (filters: BookmarkFilters) => {
   return useQuery<PaginatedBookmarks>({
@@ -15,6 +18,43 @@ export const useBookmarks = (filters: BookmarkFilters) => {
     queryFn: async (): Promise<PaginatedBookmarks> => {
       const { data } = await bookmarksApi.list(filters);
       return data.data as PaginatedBookmarks;
+    },
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
+  });
+};
+
+// ─── Grouped (Kanban Level 1 & 2) ────────────────────────────────────────────
+
+export interface KanbanGroup {
+  name: string;
+  bookmarks: Bookmark[];
+  total: number;
+}
+
+export interface GroupedData {
+  mode: 'kanban' | 'flat';
+  groupBy?: string;
+  groups?: KanbanGroup[];
+  // flat mode
+  bookmarks?: Bookmark[];
+  total?: number;
+  browserSource?: string;
+  topicCategory?: string;
+}
+
+export const useGroupedBookmarks = (params: {
+  by?: 'browserSource' | 'topicCategory';
+  browserSource?: string;
+  topicCategory?: string;
+  limit?: number;
+  search?: string;
+}) => {
+  return useQuery<GroupedData>({
+    queryKey: QUERY_KEYS.grouped(params),
+    queryFn: async (): Promise<GroupedData> => {
+      const { data } = await bookmarksApi.grouped(params);
+      return data.data as GroupedData;
     },
     staleTime: 30_000,
     placeholderData: (prev) => prev,
@@ -54,7 +94,6 @@ export const useUpdateBookmark = () => {
       bookmarksApi.update(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bookmarks'] });
-      message.success('Bookmark updated');
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
