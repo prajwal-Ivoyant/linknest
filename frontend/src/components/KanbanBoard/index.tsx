@@ -360,7 +360,7 @@ const KanbanBoard: React.FC = () => {
       <span
         key="all"
         onClick={() => dispatch(resetFilters())}
-        style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, fontSize: 13 }}
+        style={{ cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, fontSize: 18 }}
       >
         🔗 All Bookmarks 
       </span>,
@@ -513,7 +513,12 @@ const KanbanBoard: React.FC = () => {
   const groups = groupedData?.groups || [];
 
   return (
-    <div>
+    <div  style={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
       {renderBreadcrumb()}
       {groups.length === 0 ? (
         <EmptyState />

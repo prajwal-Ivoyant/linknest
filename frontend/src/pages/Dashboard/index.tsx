@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import {
   Layout, Input, Button, Tooltip, Dropdown, Avatar,
-  Typography, Space, Flex,
+  Typography, Space, Flex,Image
 } from 'antd';
 import {
   SearchOutlined, MenuUnfoldOutlined,
@@ -21,9 +21,10 @@ import ImportModal from '../../components/ImportModal';
 import EditModal from '../../components/EditModal';
 import { TOPIC_EMOJIS, BROWSER_EMOJIS } from '../../utils/helpers';
 import type { TopicCategory, BrowserSource } from '../../types';
+import logo from "../../../public/logo.png"
 
-const { Header, Content } = Layout;
-const { Text, Title } = Typography;
+const { Header, Content, Sider } = Layout;
+const { Text } = Typography;
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -60,27 +61,50 @@ const Dashboard: React.FC = () => {
       <CategorySidebar />
 
       {sidebarCollapsed && (
-        <Flex
-          style={{
-            position: 'fixed',
-            top: 20,
-            left: 16,
-            zIndex: 100,
-            background: 'var(--surface)',
-            borderRadius: 10,
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow)',
-          }}
-        >
-          <Tooltip title="Expand sidebar" placement="right">
-            <Flex
-              onClick={() => dispatch(setSidebarCollapsed(false))}
-              style={{ padding: '10px 12px', cursor: 'pointer', color: 'var(--text-muted)' }}
-            >
-              <MenuUnfoldOutlined />
-            </Flex>
-          </Tooltip>
-        </Flex>
+       <Sider
+  width={75}
+  collapsedWidth={75}
+  trigger={null}
+  style={{
+    background: 'transparent',
+    borderRight: '1px solid var(--border)'
+  }}
+>
+  <Flex
+    vertical
+    align="center"
+    gap={12}
+    style={{ paddingTop: 16 }}
+  >
+    <Image
+      src={logo}
+      preview={false}
+      width={35}
+      height={35}
+      style={{ objectFit: "contain", borderRadius: 6 }}
+    />
+
+    <Tooltip title="Expand sidebar" placement="right">
+      <Flex
+        onClick={() => dispatch(setSidebarCollapsed(false))}
+        align="center"
+        justify="center"
+        style={{
+          width: 40,
+          height: 40,
+          cursor: 'pointer',
+          color: 'var(--text-muted)',
+          background: 'var(--surface)',
+          borderRadius: 10,
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow)'
+        }}
+      >
+        <MenuUnfoldOutlined />
+      </Flex>
+    </Tooltip>
+  </Flex>
+</Sider>
       )}
 
       <Layout style={{ background: 'var(--bg)' }}>
@@ -207,18 +231,13 @@ const Dashboard: React.FC = () => {
           </Flex>
         </Header>
 
-        <Content style={{ padding: '24px', overflow: 'auto' }}>
-          {/* Page title */}
-          <Flex vertical style={{ marginBottom: 20 }}>
-            <Title level={4} style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 700, fontSize: 20 }}>
-              {getPageTitle()}
-            </Title>
-            {/* <Text style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              {stats?.total ?? 0} total bookmarks 
-            </Text> */}
-          </Flex>
+        <Content
+          style={{
+            padding: 24,
+            height: 'calc(100vh - 40px)',   // header = 60
+            overflow: 'hidden',
+          }}>
 
-         
 
           {/* Kanban — handles all 3 levels */}
           <KanbanBoard />

@@ -43,7 +43,7 @@ const CategorySidebar: React.FC = () => {
             style={{ objectFit: "contain", borderRadius: 6 }}
           />
           <Text style={{ fontWeight: 700, fontSize: 15 }}>
-            Link <span style={{ color: "#5a35e8" }}>Nest</span>
+            Link<span style={{ color: "#5a35e8" }}>Nest</span>
           </Text>
         </Flex>
 
@@ -58,13 +58,11 @@ const CategorySidebar: React.FC = () => {
 
       {/* Scroll Area */}
       <Content
-        className="sidebar-scroll"
+        className="Sidebar-scroll"
         style={{
-
-          flex: 1,            // ⭐ fill remaining space
-          padding: '0 8px 24px',
-          overflow: 'hidden',
-
+          height: "calc(100vh - 64px)",   // header height
+          overflowY: "auto",
+          overflowX: "hidden"
         }}
       >
         <SidebarMainNav />
