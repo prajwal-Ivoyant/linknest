@@ -83,7 +83,7 @@ const ImportModal: React.FC = () => {
       centered
       footer={null}
       width={520}
-      centered
+      
       title={
         <Flex align="center" gap={10}>
           <Flex
