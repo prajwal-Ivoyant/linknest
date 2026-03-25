@@ -16,6 +16,8 @@ const loginSchema = Joi.object({
   password: Joi.string().required(),
 });
 
+//4post, 1get , 1 patch
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
