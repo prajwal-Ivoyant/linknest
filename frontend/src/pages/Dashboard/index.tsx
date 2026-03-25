@@ -147,7 +147,7 @@ const Dashboard: React.FC = () => {
               onClick={() => dispatch(setImportModalOpen(true))}
               style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)', background: 'transparent', fontWeight: 500 }}
             >
-              Import
+              AI Import
             </Button>
 
             <Button

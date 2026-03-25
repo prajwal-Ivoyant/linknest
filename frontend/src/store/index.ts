@@ -4,8 +4,8 @@ import {
   FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER,
 } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import authReducer from './authSlice';
-import uiReducer from './uiSlice';
+import authReducer, { type AuthState } from './authSlice';
+import uiReducer, { type UIState } from './uiSlice';
 import { authApiSlice } from './authapiSlice';
 
 // ─── Persist configs ──────────────────────────────────────────────────────────
@@ -22,10 +22,22 @@ const uiPersistConfig = {
   whitelist: ['theme'],
 };
 
+// ─── Root reducer ─────────────────────────────────────────────────────────────
+// Explicitly cast persisted reducers back to their original state types so
+// TypeScript sees AuthState / UIState instead of PersistPartial<...>.
+
 const rootReducer = combineReducers({
-  auth: persistReducer(authPersistConfig, authReducer),
-  ui:   persistReducer(uiPersistConfig,   uiReducer),
-  // RTK Query cache reducer — NOT persisted (always fresh)
+  auth: persistReducer(authPersistConfig, authReducer) as unknown as (
+    state: AuthState | undefined,
+    action: { type: string }
+  ) => AuthState,
+
+  ui: persistReducer(uiPersistConfig, uiReducer) as unknown as (
+    state: UIState | undefined,
+    action: { type: string }
+  ) => UIState,
+
+  // RTK Query cache — never persisted, always fresh on load
   [authApiSlice.reducerPath]: authApiSlice.reducer,
 });
 
@@ -38,18 +50,19 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    })
-    // RTK Query middleware — handles cache lifetime, polling, invalidation
-    .concat(authApiSlice.middleware),
+    }).concat(authApiSlice.middleware),
   devTools: import.meta.env.DEV,
 });
 
 export const persistor = persistStore(store, {}, () => {
+  // Apply persisted theme to <html> immediately after rehydration
   const theme = store.getState().ui.theme ?? 'light';
   document.documentElement.setAttribute('data-theme', theme);
 });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+// RootState now resolves to { auth: AuthState, ui: UIState, authApi: ... }
+// No more PersistPartial — all fields (accessToken, user, etc.) are visible.
 
 export type RootState   = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

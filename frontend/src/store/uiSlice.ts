@@ -48,9 +48,9 @@ const uiSlice = createSlice({
     resetFilters(state) {
       state.filters = DEFAULT_FILTERS;
     },
-    setPage(state, action: PayloadAction<number>) {
-      state.filters.page = action.payload;
-    },
+    // setPage(state, action: PayloadAction<number>) {
+    //   state.filters.page = action.payload;
+    // },
     setTheme(state, action: PayloadAction<'light' | 'dark'>) {
       state.theme = action.payload;
       document.documentElement.setAttribute('data-theme', action.payload);
@@ -88,7 +88,7 @@ const uiSlice = createSlice({
 });
 
 export const {
-  setFilters, resetFilters, setPage,
+  setFilters, resetFilters, //setPage,
   setTheme, toggleTheme,
   toggleSelected, clearSelected, selectAll,
   setSidebarCollapsed, setImportModalOpen, setAddModalOpen, setEditBookmarkId,

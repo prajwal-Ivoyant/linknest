@@ -62,7 +62,8 @@ const CategorySidebar: React.FC = () => {
         style={{
           height: "calc(100vh - 64px)",   // header height
           overflowY: "auto",
-          overflowX: "hidden"
+          overflowX: "hidden",
+          padding:"10px"
         }}
       >
         <SidebarMainNav />
