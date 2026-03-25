@@ -9,10 +9,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
-  build: {
-    outDir: '../backend/public',  // ← Build React into backend/public
-    emptyOutDir: true,
-  },
   server: {
     port: 5173,
     proxy: {
