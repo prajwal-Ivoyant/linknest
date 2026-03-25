@@ -7,7 +7,7 @@ const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
 });
-
+console.log("API URL =", API_BASE_URL);
 // Request interceptor — attach access token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
