@@ -62,17 +62,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/bookmarks', require('./routes/bookmarks'));
-
-
-// ⭐ Serve React static files
-app.use(express.static(path.join(__dirname, '../public')));
-
-// ⭐ React router fallback
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
 
 // Global error handler
