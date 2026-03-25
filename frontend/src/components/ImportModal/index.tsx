@@ -80,7 +80,7 @@ const ImportModal: React.FC = () => {
     <Modal
       open={importModalOpen}
       onCancel={handleClose}
-      centered
+      
       footer={null}
       width={520}
       
