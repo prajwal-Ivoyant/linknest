@@ -40,7 +40,7 @@ export const authApiSlice = createApi({
   reducerPath: 'authApi',
 
   baseQuery: fetchBaseQuery({
-    baseURL: import.meta.env.VITE_API_URL,
+    baseUrl: import.meta.env.VITE_API_URL,
     // Attach access token to every request automatically
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.accessToken
