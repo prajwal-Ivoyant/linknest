@@ -358,7 +358,7 @@ router.post('/import/url', async (req, res) => {
 
 router.post('/import/file', upload.single('file'), async (req, res) => {
   try {
-    // 1. Validate file
+    // Validate file
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -366,76 +366,62 @@ router.post('/import/file', upload.single('file'), async (req, res) => {
       });
     }
 
-    // 2. Parse file
-    const content = req.file.buffer.toString();
+    const content = req.file.buffer.toString('utf-8');
 
-    let bookmarks = [];
-    try {
-      bookmarks = parseBookmarkFile(content, req.file.originalname);
-    } catch (err) {
-      console.error("Parser error:", err);
-      return res.status(500).json({
-        success: false,
-        message: "Invalid bookmark file",
-      });
-    }
+    const { bookmarks: parsed, detectedBrowser } = parseBookmarkFile(
+      content,
+      req.file.originalname
+    );
 
-    if (!bookmarks || bookmarks.length === 0) {
+    if (parsed.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'No bookmarks found in file',
       });
     }
 
-    // 3. AI categorization
-    let categories = [];
+    let categories;
     try {
-      categories = await batchCategorizeBookmarks(bookmarks);
-    } catch (err) {
-      console.error('AI error:', err.message);
-      categories = bookmarks.map(() => ({
-        category: 'Other',
-        confidence: 0,
-        aiCategorized: false,
-      }));
+      categories = await batchCategorizeBookmarks(parsed);
+    } catch {
+      categories = parsed.map((b) => ruleBasedCategorize(b));
     }
 
-    // 4. Enrich bookmarks
-    const enrichedBookmarks = bookmarks.map((b, i) => ({
-      url: b.url,
-      title: b.title,
-      browserSource: b.browserSource || 'Other',
-      topicCategory: categories[i]?.category || 'Other',
-      aiConfidence: categories[i]?.confidence || 0,
-      aiCategorized: categories[i]?.aiCategorized || false,
-      favicon: getFaviconUrl(b.url),
+    const bookmarksToInsert = parsed.map((b, i) => ({
       user: req.user._id,
+      title: b.title,
+      url: b.url,
+      browserSource: b.browserSource || detectedBrowser,
+      topicCategory: categories[i].category,
+      aiCategorized: categories[i].aiCategorized,
+      aiConfidence: categories[i].confidence,
+      favicon: getFaviconUrl(b.url),
+      addedAt: b.addedAt || new Date(),
     }));
 
-    // 5. Insert (NOW correct)
-    let inserted = [];
-    try {
-      inserted = await Bookmark.insertMany(enrichedBookmarks, { ordered: false });
-    } catch (err) {
-      console.error("Insert error:", err);
+    let inserted = 0;
+
+    for (let i = 0; i < bookmarksToInsert.length; i += 100) {
+      const result = await Bookmark.insertMany(
+        bookmarksToInsert.slice(i, i + 100),
+        { ordered: false }
+      );
+      inserted += result.length;
     }
 
-    // 6. Response
-    res.status(200).json({
+    res.json({
       success: true,
-      message: `Successfully imported ${inserted.length} bookmarks`,
+      message: `Successfully imported ${inserted} bookmarks`,
       data: {
-        count: inserted.length,
-        browser: enrichedBookmarks[0]?.browserSource || 'Unknown',
+        count: inserted,
+        browser: detectedBrowser,
       },
     });
-
-  } catch (error) {
-    console.error('Import error:', error);
-
+  } catch (err) {
+    console.error('Import file error:', err);
     res.status(500).json({
       success: false,
-      message: error.message || 'Import failed',
+      message: err.message || 'Import failed',
     });
   }
 });
