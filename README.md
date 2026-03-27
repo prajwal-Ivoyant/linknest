@@ -503,7 +503,6 @@ You are free to:
 
 With proper attribution.
 
-See the [LICENSE](./LICENSE) file for more details.
 ---
 
 <div align="center">
