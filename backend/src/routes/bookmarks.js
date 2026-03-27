@@ -358,28 +358,70 @@ router.post('/import/url', async (req, res) => {
 
 router.post('/import/file', upload.single('file'), async (req, res) => {
   try {
+    // Validate file
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'File is required' });
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
     }
 
-    const bookmarks = parseBookmarkFile(req.file);
-    const categories = await batchCategorizeBookmarks(bookmarks);
+    // Parse bookmarks file
+    const content = req.file.buffer.toString();
+    const bookmarks = parseBookmarkFile(content, req.file.originalname);
 
-    const enriched = bookmarks.map((b, i) => ({
-      ...b,
-      topicCategory: categories[i].category,
-      aiConfidence: categories[i].confidence,
-      aiCategorized: categories[i].aiCategorized,
-      user: req.user._id,
+    if (!bookmarks || bookmarks.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No bookmarks found in file',
+      });
+    }
+
+    // AI categorization (batch)
+    let categories = [];
+    try {
+      categories = await batchCategorizeBookmarks(bookmarks);
+    } catch (err) {
+      console.error('AI error:', err.message);
+      categories = bookmarks.map(() => ({
+        category: 'Other',
+        confidence: 0,
+        aiCategorized: false,
+      }));
+    }
+
+    // Enrich bookmarks
+    const enrichedBookmarks = bookmarks.map((b, i) => ({
+      url: b.url,
+      title: b.title,
+      browserSource: b.browserSource || 'Other',
+      topicCategory: categories[i]?.category || 'Other',
+      aiConfidence: categories[i]?.confidence || 0,
+      aiCategorized: categories[i]?.aiCategorized || false,
       favicon: getFaviconUrl(b.url),
+      user: req.user._id,
     }));
 
-    await Bookmark.insertMany(enriched);
+    // Insert into DB
+    const inserted = await Bookmark.insertMany(enrichedBookmarks, { ordered: false });
 
-    res.json({ success: true, message: 'Bookmarks imported successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Import failed' });
+    // Response
+    res.status(200).json({
+      success: true,
+      message: `Successfully imported ${inserted.length} bookmarks`,
+      data: {
+        count: inserted.length,
+        browser: enrichedBookmarks[0]?.browserSource || 'Unknown',
+      },
+    });
+
+  } catch (error) {
+    console.error('Import error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Import failed',
+    });
   }
 });
 
