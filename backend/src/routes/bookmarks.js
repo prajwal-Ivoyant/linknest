@@ -318,7 +318,7 @@ router.delete('/bulk/delete', async (req, res) => {
   }
 });
 
-// ─── POST /api/bookmarks/import/file ─────────────────────────────────────────
+// ─── POST /api/bookmarks/import/url ─────────────────────────────────────────
 
 router.post('/import/url', async (req, res) => {
   try {
@@ -354,32 +354,32 @@ router.post('/import/url', async (req, res) => {
   }
 });
 
-// ─── POST /api/bookmarks/import/url ──────────────────────────────────────────
+// ─── POST /api/bookmarks/import/file ──────────────────────────────────────────
 
-router.post('/import/url', async (req, res) => {
+router.post('/import/file', upload.single('file'), async (req, res) => {
   try {
-    const { url, title, browserSource = 'Other' } = req.body;
-    if (!url) return res.status(400).json({ success: false, message: 'URL is required' });
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'File is required' });
+    }
 
-    const analysis = await analyzeBookmark({ url, title });
+    const bookmarks = parseBookmarkFile(req.file);
+    const categories = await batchCategorizeBookmarks(bookmarks);
 
-    const created = await Bookmark.create({
-      url,
-      title: analysis.title,
-      description: analysis.description,
-      tags: analysis.tags,
-      browserSource,
-      topicCategory: analysis.topicCategory,
-      aiCategorized: analysis.aiCategorized,
-      aiConfidence: analysis.confidence,
+    const enriched = bookmarks.map((b, i) => ({
+      ...b,
+      topicCategory: categories[i].category,
+      aiConfidence: categories[i].confidence,
+      aiCategorized: categories[i].aiCategorized,
       user: req.user._id,
-      favicon: getFaviconUrl(url),
-    });
+      favicon: getFaviconUrl(b.url),
+    }));
 
-    res.status(201).json({ success: true, data: { bookmark: created.toJSON() } });
+    await Bookmark.insertMany(enriched);
+
+    res.json({ success: true, message: 'Bookmarks imported successfully' });
   } catch (err) {
-    console.error('Import URL error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Import failed' });
   }
 });
 
