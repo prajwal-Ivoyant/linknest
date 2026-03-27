@@ -1,80 +1,106 @@
 import React, { useState } from 'react';
-import {
-  Modal, Tabs, Upload, Button, Input, Select,
-  Progress, Typography, Space, Alert, Tag, Spin,
-  Flex, Card
-} from 'antd';
-import { InboxOutlined, LinkOutlined, CloudUploadOutlined, RobotOutlined } from '@ant-design/icons';
+import {  Modal, Tabs, Upload,Typography, Space, Alert,  Flex,  message,} from 'antd';
+import { RobotOutlined,} from '@ant-design/icons';
 import type { UploadFile } from 'antd';
-import { useImportFile, useImportUrl } from '../../hooks/useBookmarks';
+import {  useImportFile, useImportUrl, useCreateBookmark,} from '../../hooks/useBookmarks';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setImportModalOpen } from '../../store/uiSlice';
 import { BROWSER_SOURCES } from '../../types';
 import type { Bookmark } from '../../types';
-import { TOPIC_COLORS, TOPIC_BG_COLORS, TOPIC_EMOJIS } from '../../utils/helpers';
-import type { TopicCategory } from '../../types';
+import BookmarkForm from '../BookmarkForm';
+import FileModal from './fileModal';
+import UrlModal from './urlModal';
 
-const { Dragger } = Upload;
 const { Text, Title } = Typography;
+
+// ─── URL validation ───────────────────────────────────────────────────────────
+const isValidUrl = (v: string) => {
+  try { new URL(v); return true; } catch { return false; }
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const ImportModal: React.FC = () => {
   const dispatch = useAppDispatch();
   const importModalOpen = useAppSelector((s) => s.ui.importModalOpen);
+
   const { mutateAsync: importFile, isPending: fileLoading } = useImportFile();
   const { mutateAsync: importUrl, isPending: urlLoading } = useImportUrl();
+  const { mutateAsync: createBookmark } = useCreateBookmark();
 
+  // ── local state ──────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<'file' | 'url' | 'manual'>('file');
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [progress, setProgress] = useState(0);
   const [urlInput, setUrlInput] = useState('');
-  const [titleInput, setTitleInput] = useState('');
   const [browserSource, setBrowserSource] = useState('Other');
-  const [activeTab, setActiveTab] = useState('file');
+  // After AI analyzes the URL we store the result here so BookmarkForm can pre-fill
   const [aiResult, setAiResult] = useState<Partial<Bookmark> | null>(null);
 
+  // ── close / reset ─────────────────────────────────────────────────────────
   const handleClose = () => {
     dispatch(setImportModalOpen(false));
     setFileList([]);
     setProgress(0);
     setUrlInput('');
-    setTitleInput('');
     setAiResult(null);
+    setActiveTab('file');
   };
 
+  // ── file import ───────────────────────────────────────────────────────────
   const handleFileImport = async () => {
     if (!fileList.length || !fileList[0].originFileObj) return;
     setProgress(0);
     try {
-      await importFile({ file: fileList[0].originFileObj, onProgress: (pct) => setProgress(pct) });
-      setFileList([]);
-      setProgress(0);
+      await importFile({
+        file: fileList[0].originFileObj,
+        onProgress: (pct) => setProgress(pct),
+      });
       handleClose();
     } catch { setProgress(0); }
   };
 
-  const handleUrlImport = async () => {
-    if (!urlInput.trim()) return;
+  // ── URL → AI analyze ──────────────────────────────────────────────────────
+  const handleUrlAnalyze = async () => {
+    if (!isValidUrl(urlInput.trim())) return;
     setAiResult(null);
     try {
-      const res = await importUrl({
-        url: urlInput.trim(),
-        title: titleInput.trim() || undefined,
-        browserSource,
+      const res = await importUrl({ url: urlInput.trim(), browserSource });
+      const bm = res?.data?.data?.bookmark as Bookmark | undefined;
+
+      if (!bm) { message.error('AI could not analyze this URL'); return; }
+
+      // importUrl already saved the bookmark — we delete it immediately and
+      // let the user confirm / edit via BookmarkForm before re-saving.
+      // Alternatively: add a dedicated /analyze endpoint in the future.
+      setAiResult({
+        url: bm.url,
+        title: bm.title,
+        description: bm.description,
+        tags: bm.tags || [],
+        topicCategory: bm.topicCategory,
+        browserSource: (bm.browserSource || browserSource) as Bookmark['browserSource'],
+        isFavorite: false,
       });
-      const bm = res.data?.data?.bookmark as Partial<Bookmark>;
-      if (bm) setAiResult(bm);
-      else handleClose();
-    } catch { }
+      message.success('🤖 AI analyzed — review and save below');
+    } catch {
+      message.error('AI import failed. Please try again.');
+    }
   };
 
-  const topicColor = aiResult?.topicCategory
-    ? TOPIC_COLORS[aiResult.topicCategory as TopicCategory]
-    : 'var(--primary)';
-  const topicBg = aiResult?.topicCategory
-    ? TOPIC_BG_COLORS[aiResult.topicCategory as TopicCategory]
-    : 'var(--primary-soft)';
-  const topicEmoji = aiResult?.topicCategory
-    ? TOPIC_EMOJIS[aiResult.topicCategory as TopicCategory]
-    : '📎';
+  // ── save confirmed AI result ──────────────────────────────────────────────
+  const handleCreateFromAI = async (values: Partial<Bookmark>) => {
+    await createBookmark(values);
+    handleClose();
+  };
+
+  // ── manual create ─────────────────────────────────────────────────────────
+  const handleManualCreate = async (values: Partial<Bookmark>) => {
+    await createBookmark(values);
+    handleClose();
+  };
+
+  const urlValid = isValidUrl(urlInput.trim());
 
   return (
     <Modal
@@ -82,222 +108,93 @@ const ImportModal: React.FC = () => {
       onCancel={handleClose}
       centered
       footer={null}
-      width={520}
-      
+      width={820}
+      destroyOnClose
       title={
         <Flex align="center" gap={10}>
-          <Flex
-            align="center"
-            justify="center"
+          <Flex align="center" justify="center"
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'var(--primary-soft)',
-              fontSize: 16
-            }}
-          >
+              width: 36, height: 36, borderRadius: 10,
+              background: 'rgba(108,71,255,0.12)', fontSize: 18
+            }}>
             📥
           </Flex>
-
           <div>
-            <Title level={5} style={{ margin: 0 }}>
-              Import Bookmarks
-            </Title>
-            <Text style={{ fontSize: 12 }}>
-              AI generates title · description · tags · topic automatically
-            </Text>
+            <Title level={5} style={{ margin: 0 }}>Import Bookmarks</Title>
+            {(activeTab !== 'manual') && (
+              <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>
+                AI generates title · description · tags · topic automatically
+              </Text>
+            )}
           </div>
         </Flex>
       }
     >
       <Space direction="vertical" style={{ width: '100%', marginTop: 8 }} size={16}>
 
-        <Alert
-          type="info"
-          message={
-            <span>
-              <RobotOutlined style={{ marginRight: 6 }} />
-              AI enrichment: URL import auto-generates <strong>title, description, tags & topic</strong> in one call.
-              File import uses fast batch categorization.
-            </span>
-          }
-        />
+        {(activeTab !== 'manual') && (
+          <Alert
+            type="info"
+            showIcon
+            icon={<RobotOutlined />}
+            message={
+              <Text style={{ fontSize: 13 }}>
+                <strong>AI enrichment:</strong> URL import auto-generates title,
+                description, tags &amp; topic in one call. File import uses fast
+                batch categorization.
+              </Text>
+            }
+          />
+        )}
 
         <Tabs
           activeKey={activeTab}
-          onChange={(k) => { setActiveTab(k); setAiResult(null); }}
+          onChange={(k) => {
+            setActiveTab(k as typeof activeTab);
+            setAiResult(null);
+          }}
           items={[
             { key: 'file', label: '📁 Import File' },
-            { key: 'url', label: '🔗 Add URL' }
+            { key: 'url', label: '✨ Add URL (AI)' },
+            { key: 'manual', label: '✍️ Add Manually' },
           ]}
         />
 
-        {/* FILE */}
+        {/* ── FILE TAB ──────────────────────────────────────────────────── */}
         {activeTab === 'file' && (
-          <Space direction="vertical" style={{ width: '100%' }}>
-
-            <Dragger
-              accept=".html,.htm,.json,.txt"
-              maxCount={1}
-              fileList={fileList}
-              beforeUpload={() => false}
-              onChange={({ fileList: fl }) => setFileList(fl)}
-            >
-              <InboxOutlined style={{ fontSize: 28 }} />
-              <Text strong style={{ display: 'block', marginTop: 8 }}>
-                Drop your bookmark file here
-              </Text>
-              <Text type="secondary">HTML or JSON · Max 10MB</Text>
-            </Dragger>
-
-            {progress > 0 && (
-              <Progress percent={progress} size="small" />
-            )}
-
-            <Card size="small">
-              <Text strong style={{ fontSize: 12 }}>
-                How to export from your browser:
-              </Text>
-
-              <Space direction="vertical" size={4}>
-                {[
-                  { b: '🌐 Chrome / Brave / Edge', s: 'Bookmarks → Bookmark Manager → ⋮ → Export bookmarks' },
-                  { b: '🦊 Firefox', s: 'Bookmarks → Manage Bookmarks → Import & Backup → Export' },
-                  { b: '🧭 Safari', s: 'File → Export Bookmarks…' },
-                ].map(({ b, s }) => (
-                  <div key={b}>
-                    <Text strong style={{ fontSize: 11 }}>{b}</Text>
-                    <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>{s}</Text>
-                  </div>
-                ))}
-              </Space>
-            </Card>
-
-            <Button
-              type="primary"
-              block
-              size="large"
-              loading={fileLoading}
-              disabled={!fileList.length}
-              onClick={handleFileImport}
-              icon={<CloudUploadOutlined />}
-            >
-              {fileLoading ? 'Importing & categorizing with AI…' : 'Import & Auto-Categorize'}
-            </Button>
-
-          </Space>
+          <FileModal
+            fileList={fileList}
+            setFileList={setFileList}
+            progress={progress}
+            fileLoading={fileLoading}
+            handleFileImport={handleFileImport}
+          />
         )}
 
-        {/* URL */}
+        {/* ── URL TAB ───────────────────────────────────────────────────── */}
         {activeTab === 'url' && (
-          <Flex vertical gap={12}>
+          <UrlModal
+            aiResult={aiResult}
+            setAiResult={setAiResult}
+            urlInput={urlInput}
+            setUrlInput={setUrlInput}
+            urlValid={urlValid}
+            browserSource={browserSource}
+            setBrowserSource={setBrowserSource}
+            urlLoading={urlLoading}
+            handleUrlAnalyze={handleUrlAnalyze}
+            handleCreateFromAI={handleCreateFromAI}
+            BROWSER_SOURCES={BROWSER_SOURCES}
+          />
+        )}
 
-            {aiResult && (
-              <Card>
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-
-                  <Space>
-                    <RobotOutlined />
-                    <Text strong>AI Generated — Bookmark Saved ✓</Text>
-                  </Space>
-
-                  <Text strong>{aiResult.title}</Text>
-
-                  {aiResult.description && (
-                    <Text type="secondary">{aiResult.description}</Text>
-                  )}
-
-                  <Space>
-                    <Tag style={{ background: topicBg, color: topicColor }}>
-                      {topicEmoji} {aiResult.topicCategory}
-                    </Tag>
-
-                    {aiResult.aiConfidence !== undefined && (
-                      <Text type="secondary" style={{ fontSize: 11 }}>
-                        {Math.round(aiResult.aiConfidence * 100)}% confidence
-                      </Text>
-                    )}
-                  </Space>
-
-                  {aiResult.tags && (
-                    <Space wrap>
-                      {aiResult.tags.map((tag) => (
-                        <Tag key={tag}>#{tag}</Tag>
-                      ))}
-                    </Space>
-                  )}
-
-                  <Space>
-                    <Button size="small" onClick={() => {
-                      setAiResult(null);
-                      setUrlInput('');
-                      setTitleInput('');
-                    }}>
-                      Add another
-                    </Button>
-
-                    <Button type="primary" size="small" onClick={handleClose}>
-                      Done
-                    </Button>
-                  </Space>
-
-                </Space>
-              </Card>
-            )}
-
-            {!aiResult && (
-              <Space direction="vertical" style={{ width: '100%' }}>
-
-                <div>
-                  <Text strong style={{ fontSize: 13 }}>URL *</Text>
-                  <Input
-                    prefix={<LinkOutlined />}
-                    placeholder="https://example.com"
-                    value={urlInput}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    size="large"
-                    onPressEnter={handleUrlImport}
-                  />
-                </div>
-
-                <div>
-                  <Text strong style={{ fontSize: 13 }}>Title</Text>
-                  <Input
-                    placeholder="Leave empty for AI to generate…"
-                    value={titleInput}
-                    onChange={(e) => setTitleInput(e.target.value)}
-                    size="large"
-                  />
-                </div>
-
-                <div>
-                  <Text strong style={{ fontSize: 13 }}>Browser Source</Text>
-                  <Select
-                    style={{ width: '100%' }}
-                    value={browserSource}
-                    onChange={setBrowserSource}
-                    size="large"
-                    options={BROWSER_SOURCES.map((b) => ({ value: b, label: b }))}
-                  />
-                </div>
-
-                <Button
-                  type="primary"
-                  block
-                  size="large"
-                  loading={urlLoading}
-                  disabled={!urlInput.trim()}
-                  onClick={handleUrlImport}
-                  icon={urlLoading ? <Spin size="small" /> : <RobotOutlined />}
-                >
-                  {urlLoading ? 'AI is analyzing…' : '✨ Import & Auto-Enrich with AI'}
-                </Button>
-
-              </Space>
-            )}
-
-          </Flex>
+        {/* ── MANUAL TAB ────────────────────────────────────────────────── */}
+        {activeTab === 'manual' && (
+          <BookmarkForm
+            mode="create"
+            onSubmit={handleManualCreate}
+            onCancel={handleClose}
+          />
         )}
 
       </Space>

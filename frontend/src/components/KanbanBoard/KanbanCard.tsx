@@ -60,7 +60,7 @@ const KanbanCard: React.FC<Props> = ({ bookmark, showBrowser = false, showTopic 
 
   const menuItems = [
     { key: 'edit', label: 'Edit', icon: <EditOutlined />, onClick: () => dispatch(setEditBookmarkId(bookmark._id)) },
-    { key: 'open', label: 'Open link', icon: <ExportOutlined />, onClick: () => window.open(bookmark.url, '_blank', 'noopener,noreferrer') },
+    
     {
       key: 'archive',
       label: bookmark.isArchived ? 'Unarchive' : 'Archive',

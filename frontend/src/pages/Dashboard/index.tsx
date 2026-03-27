@@ -40,23 +40,6 @@ const Dashboard: React.FC = () => {
     dispatch(setFilters({ search: value }));
   }, [dispatch]);
 
-  const getPageTitle = () => {
-    if (filters.isFavorite) return '⭐ Favorites';
-    if (filters.isArchived) return '📦 Archive';
-    if (filters.search) return `🔍 "${filters.search}"`;
-    if (filters.browserSource && filters.browserSource !== 'all') {
-      const bEmoji = BROWSER_EMOJIS[filters.browserSource as BrowserSource];
-      if (filters.topicCategory && filters.topicCategory !== 'all') {
-        const tEmoji = TOPIC_EMOJIS[filters.topicCategory as TopicCategory];
-        return `${bEmoji} ${filters.browserSource}  ›  ${tEmoji} ${filters.topicCategory}`;
-      }
-      return `${bEmoji} ${filters.browserSource}`;
-    }
-    if (filters.topicCategory && filters.topicCategory !== 'all') {
-      return `${TOPIC_EMOJIS[filters.topicCategory as TopicCategory]} ${filters.topicCategory}`;
-    }
-    return '🔗 All Bookmarks';
-  };
 
   return (
     <Layout style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -150,14 +133,6 @@ const Dashboard: React.FC = () => {
               AI Import
             </Button>
 
-            <Button
-              type="primary"
-              onClick={() => dispatch(setAddModalOpen(true))}
-              style={{ background: 'var(--primary)', border: 'none', fontWeight: 600 }}
-            >
-              + Add
-            </Button>
-
             {/* User avatar */}
             <Dropdown
               trigger={['click']}
@@ -196,19 +171,7 @@ const Dashboard: React.FC = () => {
 
         <Content style={{ padding: '24px', overflow: 'auto' }}>
        
-          {/* Active filter chip */}
-          {filters.search && (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center' }}>
-              <Text style={{ fontSize: 12, color: 'var(--text-muted)' }}>Active:</Text>
-              <Button
-                type="link" size="small"
-                onClick={() => dispatch(resetFilters())}
-                style={{ color: 'var(--text-muted)', padding: 0 }}
-              >
-                Reset all
-              </Button>
-            </div>
-          )}
+                  
 
           {/* Kanban — handles all 3 levels */}
           <KanbanBoard />
