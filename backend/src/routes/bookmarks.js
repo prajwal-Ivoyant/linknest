@@ -358,7 +358,7 @@ router.post('/import/url', async (req, res) => {
 
 router.post('/import/file', upload.single('file'), async (req, res) => {
   try {
-    // Validate file
+    // 1. Validate file
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -366,9 +366,19 @@ router.post('/import/file', upload.single('file'), async (req, res) => {
       });
     }
 
-    // Parse bookmarks file
+    // 2. Parse file
     const content = req.file.buffer.toString();
-    const bookmarks = parseBookmarkFile(content, req.file.originalname);
+
+    let bookmarks = [];
+    try {
+      bookmarks = parseBookmarkFile(content, req.file.originalname);
+    } catch (err) {
+      console.error("Parser error:", err);
+      return res.status(500).json({
+        success: false,
+        message: "Invalid bookmark file",
+      });
+    }
 
     if (!bookmarks || bookmarks.length === 0) {
       return res.status(400).json({
@@ -377,7 +387,7 @@ router.post('/import/file', upload.single('file'), async (req, res) => {
       });
     }
 
-    // AI categorization (batch)
+    // 3. AI categorization
     let categories = [];
     try {
       categories = await batchCategorizeBookmarks(bookmarks);
@@ -390,7 +400,7 @@ router.post('/import/file', upload.single('file'), async (req, res) => {
       }));
     }
 
-    // Enrich bookmarks
+    // 4. Enrich bookmarks
     const enrichedBookmarks = bookmarks.map((b, i) => ({
       url: b.url,
       title: b.title,
@@ -402,10 +412,15 @@ router.post('/import/file', upload.single('file'), async (req, res) => {
       user: req.user._id,
     }));
 
-    // Insert into DB
-    const inserted = await Bookmark.insertMany(enrichedBookmarks, { ordered: false });
+    // 5. Insert (NOW correct)
+    let inserted = [];
+    try {
+      inserted = await Bookmark.insertMany(enrichedBookmarks, { ordered: false });
+    } catch (err) {
+      console.error("Insert error:", err);
+    }
 
-    // Response
+    // 6. Response
     res.status(200).json({
       success: true,
       message: `Successfully imported ${inserted.length} bookmarks`,
