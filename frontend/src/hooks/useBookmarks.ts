@@ -142,18 +142,39 @@ export const useImportFile = () => {
   });
 };
 
+// export const useImportUrl = () => {
+//   const qc = useQueryClient();
+//   return useMutation({
+//     mutationFn: ({ url, title, browserSource }: { url: string; title?: string; browserSource?: string }) =>
+//       bookmarksApi.importUrl(url, title, browserSource),
+//     onSuccess: () => {
+//       qc.invalidateQueries({ queryKey: ['bookmarks'] });
+//       message.success('Bookmark imported');
+//     },
+//     onError: (err: unknown) => {
+//       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+//       message.error(msg || 'Import failed');
+//     },
+//   });
+// };
+
 export const useImportUrl = () => {
-  const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ url, title, browserSource }: { url: string; title?: string; browserSource?: string }) =>
-      bookmarksApi.importUrl(url, title, browserSource),
+    mutationFn: ({ url, title, browserSource }: {
+      url: string
+      title?: string
+      browserSource?: string
+    }) => bookmarksApi.importUrl(url, title, browserSource),
+
+ 
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['bookmarks'] });
-      message.success('Bookmark imported');
+      // do nothing here
     },
+
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      message.error(msg || 'Import failed');
+      const msg = (err as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message
+      message.error(msg || 'AI import failed')
     },
   });
 };

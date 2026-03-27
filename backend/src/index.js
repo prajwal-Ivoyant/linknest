@@ -15,19 +15,11 @@ connectDB();
 
 // Security middleware
 app.use(helmet());
-// app.use(cors({
-//   origin: process.env.CLIENT_URL ,//|| 'http://localhost:5173'
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-// }));
-
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://linknest-ai-bookmarkmanager.netlify.app"
-  ],
-  credentials: true
+  origin: process.env.CLIENT_URL ,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Rate limiting
@@ -99,7 +91,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 LinkNest API running on http://localhost:${PORT}`);
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🤖 OpenAI: ${process.env.OPENAI_API_KEY ? 'Configured' : 'Not configured (using fallback)'}`);
+  console.log(`🤖 OpenAI: ${process.env.GROQ_API_KEY ? 'Configured' : 'Not configured (using fallback)'}`);
 });
 
 module.exports = app;

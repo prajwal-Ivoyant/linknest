@@ -320,45 +320,37 @@ router.delete('/bulk/delete', async (req, res) => {
 
 // ─── POST /api/bookmarks/import/file ─────────────────────────────────────────
 
-router.post('/import/file', upload.single('file'), async (req, res) => {
+router.post('/import/url', async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+    const { url, title, browserSource = 'Other' } = req.body;
+    if (!url)
+      return res.status(400).json({ success: false, message: 'URL is required' });
 
-    const content = req.file.buffer.toString('utf-8');
-    const { bookmarks: parsed, detectedBrowser } = parseBookmarkFile(content, req.file.originalname);
+    // ⭐ AI analyze ONLY
+    const analysis = await analyzeBookmark({ url, title });
 
-    if (parsed.length === 0)
-      return res.status(400).json({ success: false, message: 'No bookmarks found in file' });
+    // ⭐ DO NOT SAVE TO DB HERE
+    const previewBookmark = {
+      url,
+      title: analysis.title,
+      description: analysis.description,
+      tags: analysis.tags,
+      browserSource,
+      topicCategory: analysis.topicCategory,
+      aiCategorized: analysis.aiCategorized,
+      aiConfidence: analysis.confidence,
+      favicon: getFaviconUrl(url),
+    };
 
-    let categories;
-    try {
-      categories = await batchCategorizeBookmarks(parsed);
-    } catch {
-      categories = parsed.map((b) => ruleBasedCategorize(b));
-    }
+    // ⭐ Return preview only
+    res.status(200).json({
+      success: true,
+      data: { bookmark: previewBookmark },
+    });
 
-    const bookmarksToInsert = parsed.map((b, i) => ({
-      user: req.user._id,
-      title: b.title,
-      url: b.url,
-      browserSource: b.browserSource || detectedBrowser,
-      topicCategory: categories[i].category,
-      aiCategorized: categories[i].aiCategorized,
-      aiConfidence: categories[i].confidence,
-      favicon: getFaviconUrl(b.url),
-      addedAt: b.addedAt || new Date(),
-    }));
-
-    let inserted = 0;
-    for (let i = 0; i < bookmarksToInsert.length; i += 100) {
-      const result = await Bookmark.insertMany(bookmarksToInsert.slice(i, i + 100), { ordered: false });
-      inserted += result.length;
-    }
-
-    res.json({ success: true, message: `Successfully imported ${inserted} bookmarks`, data: { count: inserted, browser: detectedBrowser } });
   } catch (err) {
-    console.error('Import file error:', err);
-    res.status(500).json({ success: false, message: err.message || 'Import failed' });
+    console.error('Import URL error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

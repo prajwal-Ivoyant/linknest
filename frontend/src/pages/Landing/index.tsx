@@ -232,7 +232,7 @@ const LandingPage: React.FC = () => {
                     </Button>
                     <Button
                         type="primary"
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate('/register')}
                         style={{ background: 'var(--primary)', border: 'none', fontWeight: 600 }}
                     >
                         Get started free
@@ -325,7 +325,7 @@ const LandingPage: React.FC = () => {
                             type="primary"
                             size="large"
                             icon={<RocketOutlined />}
-                            onClick={() => navigate('/login')}
+                            onClick={() => navigate('/register')}
                             style={{
                                 height: 52, padding: '0 32px', fontWeight: 700, fontSize: 16,
                                 background: 'linear-gradient(135deg, #6c47ff 0%, #9b7aff 100%)',
@@ -493,7 +493,7 @@ const LandingPage: React.FC = () => {
                     <Button
                         size="large"
                         icon={<ArrowRightOutlined />}
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate('/register')}
                         style={{
                             height: 52, padding: '0 36px', fontWeight: 700, fontSize: 16,
                             background: '#fff', color: '#6c47ff', border: 'none',
@@ -530,7 +530,7 @@ const LandingPage: React.FC = () => {
                             {[
                                 { label: 'Features', type: 'scroll', id: 'features' },
                                 { label: 'Sign in', type: 'route', path: '/login' },
-                                { label: 'Register', type: 'route', path: '/login' },
+                                { label: 'Register', type: 'route', path: '/register' },
                             ].map((item) => (
                                 <Col span={12} key={item.label}>
                                     <Text

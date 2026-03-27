@@ -52,9 +52,6 @@ const EmptyState: React.FC<Props> = ({ isFiltered, isSearching }) => {
           View all bookmarks
         </Button>
 
-        <Button type="primary" onClick={() => dispatch(setAddModalOpen(true))}>
-          Add bookmark
-        </Button>
       </Space>
     </Flex>
   );
@@ -69,7 +66,7 @@ const EmptyState: React.FC<Props> = ({ isFiltered, isSearching }) => {
         maxWidth: 480,
         margin: '0 auto',
         textAlign: 'center',
-        minHeight: 'calc(100vh - 160px)'   // ⭐ KEY FIX
+        minHeight: 'calc(100vh - 160px)'   
       }}
     >
 
@@ -105,20 +102,7 @@ const EmptyState: React.FC<Props> = ({ isFiltered, isSearching }) => {
           Import AI bookmarks
         </Button>
 
-        <Button
-          type="primary"
-          size="large"
-          icon={<span>✨</span>}
-          onClick={() => dispatch(setAddModalOpen(true))}
-          style={{
-            height: 44,
-            padding: '0 20px',
-            borderRadius: 'var(--radius-input)',
-            fontWeight: 600
-          }}
-        >
-          Add a link
-        </Button>
+       
       </Space>
 
       <Flex gap={16} justify="center" wrap style={{ marginTop: 48 }}>

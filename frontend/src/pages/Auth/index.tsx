@@ -1,179 +1,254 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Tabs, Typography, message, Image, Flex } from 'antd';
-import { Navigate } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '../../store/hooks';
-import { clearError } from '../../store/authSlice';
-import { useLoginMutation, useRegisterMutation } from '../../store/authapiSlice';
+import React, { useState, useEffect } from "react";
+import {  Form,  Input,  Button,  Tabs,  Typography,  message,  Card,  Row,  Col,  Space,  theme, Image, Flex} from "antd";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAppSelector, useAppDispatch } from "../../store/hooks";
+import { clearError } from "../../store/authSlice";
+import {ArrowLeftOutlined} from '@ant-design/icons'
+import {  useLoginMutation,  useRegisterMutation} from "../../store/authapiSlice";
 import logo from "../../../public/logo.png";
 
 const { Title, Text } = Typography;
 
 const AuthPage: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const { isAuthenticated, error } = useAppSelector((s) => s.auth);
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const { token } = theme.useToken();
 
-  // RTK Query mutation hooks — each returns [triggerFn, { isLoading, error }]
-  const [login,    { isLoading: loginLoading    }] = useLoginMutation();
-  const [register, { isLoading: registerLoading }] = useRegisterMutation();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const { error } = useAppSelector((s) => s.auth);
+
+  const [activeTab, setActiveTab] = useState<"login" | "register">(
+    location.pathname === "/register" ? "register" : "login"
+  );
+
+  const [login, { isLoading: loginLoading }] = useLoginMutation();
+  const [register, { isLoading: registerLoading }] =
+    useRegisterMutation();
+
+  const [loginForm] = Form.useForm();
+  const [registerForm] = Form.useForm();
+
+  const [loginValid, setLoginValid] = useState(false);
+  const [registerValid, setRegisterValid] = useState(false);
 
   const isLoading = loginLoading || registerLoading;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (error) {
       message.error(error);
       dispatch(clearError());
     }
-  }, [error, dispatch]);
+  }, [error]);
 
-  if (isAuthenticated) return <Navigate to="/app" replace />;
-
-  const handleLogin = async (values: { email: string; password: string }) => {
+  const handleLogin = async (values: any) => {
     try {
       await login(values).unwrap();
-      // authSlice.extraReducers handles setting user + tokens via matchFulfilled
-    } catch (err: unknown) {
-      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Login failed';
-      message.error(msg);
+      message.success("Welcome back!");
+      navigate("/app");
+    } catch (e: any) {
+      message.error(e?.data?.message || "Login failed");
     }
   };
 
-  const handleRegister = async (values: { name: string; email: string; password: string }) => {
+  const handleRegister = async (values: any) => {
     try {
       await register(values).unwrap();
-    } catch (err: unknown) {
-      const msg = (err as { data?: { message?: string } })?.data?.message ?? 'Registration failed';
-      message.error(msg);
+      message.success("Account created. Please sign in.");
+      setActiveTab("login");
+      registerForm.resetFields();
+    } catch (e: any) {
+      message.error(e?.data?.message || "Registration failed");
     }
+  };
+
+  const validateLogin = () => {
+    const hasErrors = loginForm
+      .getFieldsError()
+      .some(({ errors }) => errors.length);
+    setLoginValid(loginForm.isFieldsTouched(true) && !hasErrors);
+  };
+
+  const validateRegister = () => {
+    const hasErrors = registerForm
+      .getFieldsError()
+      .some(({ errors }) => errors.length);
+    setRegisterValid(registerForm.isFieldsTouched(true) && !hasErrors);
   };
 
   return (
-    <Flex
-      style={{
-        minHeight: '100vh',
-        background: 'var(--bg)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
-        position: 'relative',
-      }}
-    >
-      {/* Background blobs */}
-      <div style={{ position: 'fixed', top: -120, right: -80, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(108,71,255,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'fixed', bottom: -80, left: -60, width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(108,71,255,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+    <>
+
+      <Button
+        type="text"
+        icon={<ArrowLeftOutlined />}
+        onClick={() => navigate('/')}
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          fontWeight: 600
+        }}
+      >
+      </Button>
+
 
       <Flex
         vertical
+        align="center"
+        justify="center"
         style={{
-          width: '100%',
-          maxWidth: 420,
-          background: 'var(--surface)',
-          borderRadius: 16,
-          padding: '40px 36px',
-          boxShadow: '0 8px 40px rgba(108,71,255,0.12)',
-          border: '1px solid var(--border)',
-          animation: 'fadeIn 0.4s ease',
+          minHeight: "100vh",
+          background: token.colorBgLayout
         }}
       >
-        {/* Logo + Title */}
-        <Flex align="center" style={{ marginBottom: 24 }}>
-          <Image
-            src={logo}
-            alt="LinkNest"
-            preview={false}
-            width={72}
-            style={{ objectFit: 'contain', borderRadius: 6 }}
-          />
-          <Flex vertical style={{ marginLeft: 12 }}>
-            <Title level={3} style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 700, lineHeight: 1.2 }}>
-              Link<span style={{ color: '#6c47ff' }}>Nest</span>
-            </Title>
-            <Text style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-              Your AI-powered bookmark manager
-            </Text>
-          </Flex>
-        </Flex>
+        <Card
+          style={{
+            width: "100%",
+            maxWidth: 920,
+            borderRadius: token.borderRadiusLG,
+            boxShadow: token.boxShadowSecondary
+          }}
+          bodyStyle={{ padding: 48 }}
+        >
+          <Row gutter={48} align="middle">
+            {/* LEFT BRAND PANEL */}
+            <Col xs={24} md={12}>
+              <Space
+                direction="vertical"
+                size="large"
+                style={{ textAlign: "center", width: "100%" }}
+              >
+                <Image
+                  src={logo}
+                  width={120}
+                  preview={false}
+                />
 
-        <Tabs
-          activeKey={activeTab}
-          onChange={(k) => setActiveTab(k as 'login' | 'register')}
-          centered
-          items={[
-            { key: 'login',    label: 'Sign In'        },
-            { key: 'register', label: 'Create Account' },
-          ]}
-          style={{ marginBottom: 8 }}
-        />
+                <Title level={2} style={{ margin: 0 }}>
+                  Link
+                  <span style={{ color: token.colorPrimary }}>Nest</span>
+                </Title>
 
-        {activeTab === 'login' ? (
-          <Form layout="vertical" onFinish={handleLogin} size="large" requiredMark={false}>
-            <Form.Item
-              name="email"
-              label={<Text style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>Email</Text>}
-              rules={[{ required: true, type: 'email', message: 'Enter a valid email' }]}
-            >
-              <Input placeholder="you@example.com" />
-            </Form.Item>
+                <Text type="secondary">
+                  AI-powered bookmark manager to organize,
+                  categorize and find links instantly.
+                </Text>
+              </Space>
+            </Col>
 
-            <Form.Item
-              name="password"
-              label={<Text style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>Password</Text>}
-              rules={[{ required: true, message: 'Password is required' }]}
-            >
-              <Input.Password placeholder="••••••••" />
-            </Form.Item>
+            {/* RIGHT FORM PANEL */}
+            <Col xs={24} md={12}>
+              <Tabs
+                centered
+                size="large"
+                activeKey={activeTab}
+                onChange={(k) => setActiveTab(k as any)}
+                items={[
+                  { key: "login", label: "Sign In" },
+                  { key: "register", label: "Create Account" }
+                ]}
+              />
 
-            <Button
-              type="primary" htmlType="submit" loading={isLoading} block
-              style={{
-                height: 44, borderRadius: 'var(--radius-input)', fontWeight: 600,
-                background: 'linear-gradient(135deg, #6c47ff 0%, #8b6aff 100%)',
-                border: 'none', marginTop: 8,
-              }}
-            >
-              Sign In
-            </Button>
-          </Form>
-        ) : (
-          <Form layout="vertical" onFinish={handleRegister} size="large" requiredMark={false}>
-            <Form.Item
-              name="name"
-              label={<Text style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>Full Name</Text>}
-              rules={[{ required: true, min: 2, message: 'Enter your name' }]}
-            >
-              <Input placeholder="Jane Smith" />
-            </Form.Item>
+              {activeTab === "login" && (
+                <Form
+                  form={loginForm}
+                  layout="vertical"
+                  onFinish={handleLogin}
+                  onValuesChange={validateLogin}
+                >
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[
+                      { required: true },
+                      { type: "email" }
+                    ]}
+                  >
+                    <Input size="large" autoFocus />
+                  </Form.Item>
 
-            <Form.Item
-              name="email"
-              label={<Text style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>Email</Text>}
-              rules={[{ required: true, type: 'email', message: 'Enter a valid email' }]}
-            >
-              <Input placeholder="you@example.com" />
-            </Form.Item>
+                  <Form.Item
+                    name="password"
+                    label="Password"
+                    rules={[
+                      { required: true },
+                      { min: 4 }
+                    ]}
+                  >
+                    <Input.Password size="large" />
+                  </Form.Item>
 
-            <Form.Item
-              name="password"
-              label={<Text style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>Password</Text>}
-              rules={[{ required: true, min: 6, message: 'Min. 6 characters' }]}
-            >
-              <Input.Password placeholder="Min. 6 characters" />
-            </Form.Item>
+                  <Button
+                    type="primary"
+                    size="large"
+                    htmlType="submit"
+                    block
+                    loading={isLoading}
+                    disabled={!loginValid}
+                  >
+                    {isLoading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </Form>
+              )}
 
-            <Button
-              type="primary" htmlType="submit" loading={isLoading} block
-              style={{
-                height: 44, borderRadius: 'var(--radius-input)', fontWeight: 600,
-                background: 'linear-gradient(135deg, #6c47ff 0%, #8b6aff 100%)',
-                border: 'none', marginTop: 8,
-              }}
-            >
-              Create Account
-            </Button>
-          </Form>
-        )}
+              {activeTab === "register" && (
+                <Form
+                  form={registerForm}
+                  layout="vertical"
+                  onFinish={handleRegister}
+                  onValuesChange={validateRegister}
+                >
+                  <Form.Item
+                    name="name"
+                    label="Full Name"
+                    rules={[{ required: true }]}
+                  >
+                    <Input size="large" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="email"
+                    label="Email"
+                    rules={[
+                      { required: true },
+                      { type: "email" }
+                    ]}
+                  >
+                    <Input size="large" />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="password"
+                    label="Password"
+                    rules={[
+                      { required: true },
+                      { min: 4 }
+                    ]}
+                  >
+                    <Input.Password size="large" />
+                  </Form.Item>
+
+                  <Button
+                    type="primary"
+                    size="large"
+                    htmlType="submit"
+                    block
+                    loading={isLoading}
+                    disabled={!registerValid}
+                  >
+                    {isLoading
+                      ? "Creating account..."
+                      : "Create Account"}
+                  </Button>
+                </Form>
+              )}
+            </Col>
+          </Row>
+        </Card>
       </Flex>
-    </Flex>
+
+    </>
   );
 };
 
