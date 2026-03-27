@@ -492,10 +492,18 @@ npm run build   # TypeScript check + Vite build
 
 ---
 
-## License
+## 📄 License
 
-MIT — free to use, modify, and distribute.
+This project is licensed under the **MIT License**.
 
+You are free to:
+- Use
+- Modify
+- Distribute
+
+With proper attribution.
+
+See the [LICENSE](./LICENSE) file for more details.
 ---
 
 <div align="center">
