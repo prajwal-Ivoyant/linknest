@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/badge/TypeScript-5.2-3178C6?style=flat-square&logo=typescript" />
     <img src="https://img.shields.io/badge/Node.js-20-339933?style=flat-square&logo=node.js" />
     <img src="https://img.shields.io/badge/MongoDB-7-47A248?style=flat-square&logo=mongodb" />
-    <img src="https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?style=flat-square&logo=openai" />
+<img src="https://img.shields.io/badge/Groq-Llama--3--8B-FF6B35?style=flat-square&logo=groq" />
     <img src="https://img.shields.io/badge/Ant%20Design-5.12-0170FE?style=flat-square&logo=antdesign" />
   </p>
 </div>
@@ -54,14 +54,14 @@ Drag and drop cards between columns to re-categorize. Everything is dark/light m
 
 | Feature | Description |
 |---|---|
-| 🤖 **AI Categorization** | GPT-4o-mini auto-generates title, description, tags and topic for every bookmark |
+| 🤖 **AI Categorization** | Groq AI(Llama-3) auto-generates title, description, tags and topic for every bookmark |
 | 📥 **Browser Import** | Upload HTML/JSON exports from Chrome, Firefox, Edge, Brave, Safari |
 | 🗂️ **3-Level Kanban** | Browser → Topic → Grid navigation with drag-and-drop |
 | 🔍 **Full-Text Search** | MongoDB text index across title, URL, description, tags |
 | 🌙 **Dark / Light Theme** | Persistent theme via Redux, Ant Design darkAlgorithm |
 | 🔐 **JWT Auth** | Access + refresh token rotation, multi-device support |
 | ⭐ **Favorites & Archive** | Quick access to starred and archived bookmarks |
-| 🏷️ **Tags** | AI-generated or manual, filterable |
+| 🏷️ **Tags** | AI-generated or manual |
 | 📊 **Stats** | Browser and topic breakdowns with live counts |
 | 🔁 **Drag & Drop** | @dnd-kit — move bookmarks between columns to re-categorize |
 | 📱 **Responsive** | Works on desktop and mobile |
@@ -133,51 +133,65 @@ linknest/
 │
 ├── frontend/
 │   ├── public/
-│   │   └── logo.png
+│   │   ├── logo.png
+│   │   ├── dark.png
+│   │   └── empty.png
+│   │
 │   ├── src/
 │   │   ├── api/
 │   │   │   ├── client.ts            # Axios instance + JWT refresh interceptor
-│   │   │   └── index.ts             # All API functions
+│   │   │   └── index.ts             # Centralized API functions
+│   │   │
 │   │   ├── components/
-│   │   │   ├── BookmarkCard/        # Card (grid/list variants)
-│   │   │   ├── BookmarkForm/        # Reusable form (create | edit | ai modes)
-│   │   │   ├── CategorySidebar/     # Nav sidebar with browser/topic filters
+│   │   │   ├── BookmarkCard/        # Bookmark card (grid/list variants)
+│   │   │   ├── BookmarkForm/        # Reusable form (create | edit | AI modes)
+│   │   │   ├── CategorySidebar/     # Sidebar navigation (browser/topic filters)
 │   │   │   ├── EditModal/           # Edit bookmark modal
-│   │   │   ├── EmptyState/          # Empty state illustrations
-│   │   │   ├── ImportModal/         # File import + URL AI import + manual add
+│   │   │   ├── EmptyState/          # Empty state UI (illustrations/messages)
+│   │   │   ├── ImportModal/         # File import + URL AI import + manual entry
 │   │   │   └── KanbanBoard/
 │   │   │       ├── index.tsx        # 3-level board logic + DnD context
 │   │   │       ├── KanbanColumn.tsx # Droppable column
 │   │   │       └── KanbanCard.tsx   # Draggable card
+│   │   │
 │   │   ├── hooks/
-│   │   │   └── useBookmarks.ts      # React Query hooks for all bookmark ops
+│   │   │   └── useBookmarks.ts      # React Query hooks for bookmark operations
+│   │   │
 │   │   ├── pages/
 │   │   │   ├── Landing/             # Public landing page
-│   │   │   ├── Auth/                # Login + register
-│   │   │   └── Dashboard/           # Main app shell
+│   │   │   ├── Auth/                # Authentication (login/register)
+│   │   │   └── Dashboard/           # Main application shell
+│   │   │
 │   │   ├── store/
-│   │   │   ├── index.ts             # configureStore + redux-persist
-│   │   │   ├── authSlice.ts         # Auth state + addMatcher listeners
-│   │   │   ├── authApiSlice.ts      # RTK Query endpoints (login/register/logout)
-│   │   │   ├── uiSlice.ts           # Filters, theme, modals, selection
-│   │   │   └── hooks.ts             # useAppDispatch + useAppSelector
+│   │   │   ├── index.ts             # configureStore + redux-persist setup
+│   │   │   ├── authSlice.ts         # Auth state + matchers
+│   │   │   ├── authApiSlice.ts      # RTK Query endpoints (auth APIs)
+│   │   │   ├── uiSlice.ts           # UI state (filters, theme, modals, selection)
+│   │   │   └── hooks.ts             # Typed hooks (useAppDispatch, useAppSelector)
+│   │   │
 │   │   ├── styles/
-│   │   │   ├── globals.css          # CSS variables (light/dark tokens)
-│   │   │   └── theme.ts             # Ant Design ConfigProvider theme config
+│   │   │   ├── globals.css          # Global styles + CSS variables (light/dark)
+│   │   │   └── theme.ts             # Ant Design theme configuration
+│   │   │
 │   │   ├── types/
-│   │   │   └── index.ts             # TypeScript interfaces
+│   │   │   └── index.ts             # TypeScript types & interfaces
+│   │   │
 │   │   ├── utils/
-│   │   │   └── helpers.ts           # Colors, emojis, date format, favicon
-│   │   ├── App.tsx                  # Router + ConfigProvider
+│   │   │   └── helpers.ts           # Utility functions (colors, emoji, date, favicon)
+│   │   │
+│   │   ├── App.tsx                  # App root (Router + Providers)
 │   │   ├── main.tsx                 # React entry point
 │   │   └── vite-env.d.ts
-│   ├── Dockerfile
-│   ├── nginx.conf
+│   │
+│   ├── Dockerfile                   # Frontend container config
+│   ├── nginx.conf                   # Nginx config for production build
 │   ├── package.json
 │   └── vite.config.ts
 │
-├── docker-compose.yml
-├── DEPLOYMENT.md
+├── backend/                         # Express backend (API + DB logic)
+│
+├── docker-compose.yml              # Multi-container setup
+├── DEPLOYMENT.md                   # Deployment guide
 └── README.md
 ```
 
@@ -397,7 +411,7 @@ batchCategorizeBookmarks(bookmarks[])
 ### Fallback chain
 
 ```
-1. GPT-4o-mini     → full AI analysis
+1. Groq-AI(Llama)  → full AI analysis
 2. Rule-based      → URL/title pattern matching (75+ patterns)
 3. Default         → category = 'Other', confidence = 0.5
 ```
@@ -465,16 +479,15 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for full instructions covering:
 
 ```bash
 npm run dev     # nodemon watch mode
-npm start       # production
+
 ```
 
 ### Frontend
 
 ```bash
 npm run dev     # Vite dev server with HMR
-npm run build   # TypeScript check + Vite build → dist/
-npm run preview # Preview production build locally
-npm run lint    # ESLint
+npm run build   # TypeScript check + Vite build 
+
 ```
 
 ---
@@ -486,10 +499,10 @@ MIT — free to use, modify, and distribute.
 ---
 
 <div align="center">
-  <p>Built with ❤️ using React, Node.js, MongoDB, and OpenAI</p>
+  <p>Built with ❤️ using React, Node.js, MongoDB, and GroqAI</p>
   <p>
     <a href="./DEPLOYMENT.md">Deployment Guide</a> ·
     <a href="https://ant.design">Ant Design</a> ·
-    <a href="https://platform.openai.com">OpenAI</a>
+    <a href="https://grok.com/">OpenAI</a>
   </p>
 </div>
