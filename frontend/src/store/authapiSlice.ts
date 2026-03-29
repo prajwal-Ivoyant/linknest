@@ -1,38 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from './index';
-import type { User } from '../types';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface AuthResponse {
-  success: boolean;
-  data: {
-    user: User;
-    accessToken: string;
-    refreshToken: string;
-  };
-}
-
-interface MeResponse {
-  success: boolean;
-  data: { user: User };
-}
-
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-interface RegisterRequest {
-  name: string;
-  email: string;
-  password: string;
-}
-
-interface RefreshResponse {
-  success: boolean;
-  data: { accessToken: string; refreshToken: string };
-}
+import type { User,AuthResponse ,MeResponse , LoginRequest, RegisterRequest,RefreshResponse,  } from '../types';
 
 // ─── RTK Query Auth API ───────────────────────────────────────────────────────
 

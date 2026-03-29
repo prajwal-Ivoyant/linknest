@@ -95,3 +95,33 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
 }
+
+
+export interface AuthResponse {
+  success: boolean;
+  data: {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+export interface MeResponse {
+  success: boolean;
+  data: { user: User };
+}
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface RefreshResponse {
+  success: boolean;
+  data: { accessToken: string; refreshToken: string };
+}

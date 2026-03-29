@@ -4,42 +4,48 @@ import {
   FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER,
 } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import authReducer, { type AuthState } from './authSlice';
-import uiReducer, { type UIState } from './uiSlice';
-import { authApiSlice } from './authapiSlice';
+import authReducer,      { type AuthState } from './authSlice';
+import uiReducer,        { type UIState   } from './uiSlice';
+import { authApiSlice }                     from './authapiSlice';
+import { bookmarksApiSlice }                from './bookmarksApiSlice';
 
 // ─── Persist configs ──────────────────────────────────────────────────────────
 
 const authPersistConfig = {
-  key: 'linknest-auth',
+  key:       'linknest-auth',
   storage,
   whitelist: ['user', 'accessToken', 'refreshToken', 'isAuthenticated'],
 };
 
 const uiPersistConfig = {
-  key: 'linknest-ui',
+  key:       'linknest-ui',
   storage,
   whitelist: ['theme'],
 };
 
 // ─── Root reducer ─────────────────────────────────────────────────────────────
-// Explicitly cast persisted reducers back to their original state types so
-// TypeScript sees AuthState / UIState instead of PersistPartial<...>.
+// Cast persisted reducers back to their original types so TypeScript resolves
+// s.auth.accessToken / s.auth.user without PersistPartial interference.
 
 const rootReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer) as unknown as (
-    state: AuthState | undefined,
+    state:  AuthState | undefined,
     action: { type: string }
   ) => AuthState,
 
+  
+
   ui: persistReducer(uiPersistConfig, uiReducer) as unknown as (
-    state: UIState | undefined,
+    state:  UIState | undefined,
     action: { type: string }
   ) => UIState,
 
-  // RTK Query cache — never persisted, always fresh on load
-  [authApiSlice.reducerPath]: authApiSlice.reducer,
+  // RTK Query reducers — never persisted, always fresh
+  [authApiSlice.reducerPath]:      authApiSlice.reducer,
+  [bookmarksApiSlice.reducerPath]: bookmarksApiSlice.reducer,
 });
+
+
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
@@ -50,19 +56,18 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }).concat(authApiSlice.middleware),
+    })
+      .concat(authApiSlice.middleware)
+      .concat(bookmarksApiSlice.middleware),   // handles cache TTL, polling, invalidation
   devTools: import.meta.env.DEV,
 });
 
 export const persistor = persistStore(store, {}, () => {
-  // Apply persisted theme to <html> immediately after rehydration
   const theme = store.getState().ui.theme ?? 'light';
   document.documentElement.setAttribute('data-theme', theme);
 });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-// RootState now resolves to { auth: AuthState, ui: UIState, authApi: ... }
-// No more PersistPartial — all fields (accessToken, user, etc.) are visible.
 
 export type RootState   = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
