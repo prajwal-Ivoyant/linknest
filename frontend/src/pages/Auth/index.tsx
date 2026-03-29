@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import {  Form,  Input,  Button,  Tabs,  Typography,  message,  Card,  Row,  Col,  Space,  theme, Image, Flex} from "antd";
+import { Form, Input, Button, Tabs, Typography, message, Card, Row, Col, Space, theme, Image, Flex } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { clearError } from "../../store/authSlice";
-import {ArrowLeftOutlined} from '@ant-design/icons'
-import {  useLoginMutation,  useRegisterMutation} from "../../store/authapiSlice";
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { useLoginMutation, useRegisterMutation } from "../../store/authapiSlice";
+import { bookmarksApiSlice } from "../../store/bookmarksApiSlice";
 import logo from "../../../public/logo.png";
 
 const { Title, Text } = Typography;
@@ -44,6 +45,7 @@ const AuthPage: React.FC = () => {
   const handleLogin = async (values: any) => {
     try {
       await login(values).unwrap();
+      dispatch(bookmarksApiSlice.util.resetApiState());
       message.success("Welcome back!");
       navigate("/app");
     } catch (e: any) {

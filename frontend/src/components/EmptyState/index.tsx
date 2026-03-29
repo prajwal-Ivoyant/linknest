@@ -53,7 +53,7 @@ const EmptyState: React.FC<Props> = ({ isFiltered, isSearching }) => {
         </Button>
 
       </Space>
-    </Flex>
+    </Flex>    
   );
 
   return (
