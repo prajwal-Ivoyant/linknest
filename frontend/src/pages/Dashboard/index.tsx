@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import {
   Layout, Input, Button, Tooltip, Dropdown, Avatar,
-  Typography, Space,Flex,Image
+   Space,Flex,Image
 } from 'antd';
 import {
   SearchOutlined, MenuUnfoldOutlined,
@@ -10,8 +10,8 @@ import {
 import { useBookmarkStats } from '../../hooks/useBookmarks';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import {
-  setFilters, resetFilters,
-  setSidebarCollapsed, setImportModalOpen, setAddModalOpen,
+  setFilters, 
+  setSidebarCollapsed, setImportModalOpen, 
   toggleTheme,
 } from '../../store/uiSlice';
 import { clearAuth } from '../../store/authSlice';
@@ -20,12 +20,9 @@ import KanbanBoard from '../../components/KanbanBoard';
 import CategorySidebar from '../../components/CategorySidebar';
 import ImportModal from '../../components/ImportModal';
 import EditModal from '../../components/EditModal';
-import { TOPIC_EMOJIS, BROWSER_EMOJIS } from '../../utils/helpers';
-import type { TopicCategory, BrowserSource } from '../../types';
 import logo from "../../../public/logo.png"
 
 const { Header, Content,Sider } = Layout;
-const { Text, Title } = Typography;
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
