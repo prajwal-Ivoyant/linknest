@@ -18,7 +18,8 @@ app.use(helmet());
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://linknest-ai-bookmarkmanager.netlify.app"
+    "https://linknest-ai-bookmarkmanager.netlify.app",
+    "https://linknest-bookmark-manager.netlify.app",
   ],
   // methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   // allowedHeaders: ['Content-Type', 'Authorization'],
